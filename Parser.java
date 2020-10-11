@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class Parser {
 	private LexScanner lexer;
@@ -197,8 +198,7 @@ public class Parser {
             return false;
 		}
 	}
-	// returns a node of primitive type or array type
-    // <primitive type> and <array type>
+	// returns a node of <primitive type> or <array type>
     // TODO: Handle <reference type>
     ASTNode type() throws Exception
     {   
@@ -300,25 +300,50 @@ public class Parser {
 	/*
 	 * <variable initializer> ::= <expression> | <array initializer>
 	 */
-	boolean variableInitializer()
+	ASTNode variableInitializer()
 	{
-		expression();
+        ASTNode varInit = new ASTNode("variable initializer", null);
+        //check for array initializer start symbol '{'
+        if(curTok.tokenCode() == 3003)
+        {
+            varInit.addChild(arrayInitializer());
+        }
+        else
+        {
+            varInit.addChild(expression());
+        }
+        return varInit;
 	}
 	
 	/*
 	 * <expression> ::= <assignment expression>
 	 */
-	boolean expression()
+	ASTNode expression()
 	{
-		assignmentExpression();
+        ASTNode exp = new ASTNode("expression", null);
+        exp.addChild(assignmentExpression());
+        return exp;
 	}
 	
 	/*
 	 * <assignment expression> ::= <conditional expression> | <assignment>
 	 */
-	boolean assignmentExpression()
+	ASTNode assignmentExpression()
 	{
-		
+		//look ahead to see if next token is an <assignment operator>
+        //TODO: Assumes <left hand side> is one token. Won't work for field access or array access now but could extend to handle by ignoring [ and ] in lookahead
+        ASTNode assExp = new ASTNode("assignment expression", null);
+        JavaToken nextTok = lookAhead(1);
+        String[] assOps = {"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>="};
+        if(Arrays.asList(assOps).contains(nextTok.tokenName()))
+        {
+            assExp.addChild(assignment());
+        }
+        else
+        {
+            assExp.addChild(conditionalExpression());
+        }
+        return assExp;
 	}
 	// print out the non-terminal being entered
 	void enterNT(String s)
