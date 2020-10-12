@@ -35,26 +35,48 @@ public class Parser {
     
     
 	String nextNonSpace() throws Exception
-	{
-        
+	{   
 		nextToken();
-		
 		while (curTok.tokenCode() == 3009)
 		{
 			nextToken();
 		}
-		
 		return curTok.tokenName();
 	}
+    
+    JavaToken nextPeekToken() throws IOException, Exception
+    {
+        lexer.nextToken();
+        JavaToken retVal = lexer.getJavaToken();
+        while(retVal.tokenCode() == 3009)
+        {
+            lexer.nextToken();
+            retVal = lexer.getJavaToken();
+        }
+        return retVal;
+    }
+    
     // get JavaToken n spots ahead (adds to buffer that will be removed from over pulling from Lexer)
     JavaToken lookAhead(int n) throws Exception
     {
+        JavaToken tok;
         while(n > buffer.size()){
-            nextNonSpace();
-            buffer.add(curTok);
+            tok = nextPeekToken();
+            buffer.add(tok);
         }
-        return buffer.get(buffer.size() - 1);
+        return buffer.get(n - 1);
     }
+    
+    // print current buffer contents
+    void printBuffer(){
+        JavaToken print;
+        for(int i = 0; i < buffer.size(); i++){
+            print = buffer.get(i);
+            System.out.println("Index: " + i + " Token: " + print.tokenName());
+        }
+    }
+    
+    
     // gets nextToken and checks to see if it matches expecting token, throws error otherwise
     void expect(String expToken, boolean next) throws Exception
     {
@@ -103,8 +125,8 @@ public class Parser {
         if(s != "close_bracket_lt"){
             block.addChild(blockStatements());
         } 
-        // TODO: Check for closed bracket. Not sure on ordering of things if I should expect next token or check current token. Printing for now.
-        System.out.println("The current token which should be } is " + curTok.tokenName());
+        // checks that current token is a }
+        expect("close_bracket_lt", false);
 		exitNT("block");
         return block;
 	}
@@ -158,8 +180,8 @@ public class Parser {
 		enterNT("localVariableDeclarationStatement");
 		ASTNode localVarDecStmnt = new ASTNode("local variable declaration statement", null); 
         localVarDecStmnt.addChild(localVariableDeclaration());
-        // TODO: Check for ;. Not sure on ordering of things if I should expect next token or check current token. Printing for now.
-        expect("semi_colon_lt", false);
+        // checks that next token is ;. Assumes localVariableDeclaration ends with last token of Declaration still the curTok
+        expect("semi_colon_lt", true);
         nextNonSpace(); //advance past ';'
 		exitNT("localVariableDeclarationStatement");
         return localVarDecStmnt;
