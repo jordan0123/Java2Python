@@ -76,6 +76,15 @@ public class Parser {
         }
     }
     
+    // Identifies when a non-implemented function would be called during parse and exit
+    // used for tagging parts of code that are not implement
+    // i.e. need to call statement but it's not implemented yet
+    // notImplemented("statement");
+    void notImplemented(String funcName)
+    {
+        System.out.println("This is a " + funcName + ". Not implemented yet.");
+        System.exit(0);
+    }
     
     // gets nextToken and checks to see if it matches expecting token, throws error otherwise
     void expect(String expToken, boolean next) throws Exception
@@ -165,15 +174,69 @@ public class Parser {
         }
         else
         {
-            System.out.println("This is a statement. Not implemented yet.");
-            System.exit(0);
-            //blockStmnt.addChild(statement());
+            blockStmnt.addChild(statement());
         }
         
         exitNT("blockStatement");
 		return blockStmnt;
 	}
 	
+    ASTNode statement() throws Exception
+    {
+        enterNT("statement");
+        ASTNode stmnt = new ASTNode("statement", null);
+        switch(curTok.tokenName())
+        {
+            case "open_bracket_lt": // {
+                stmnt.addChild(block());
+                break;
+            case "semi_colon_lt": // ;
+                stmnt.addChild(new ASTNode("empty statement", null));
+                break;
+            case "if_kw":
+                notImplemented("if statement");
+                break;
+            case "for_kw":
+                notImplemented("for statement");
+                break;
+            case "switch_kw":
+                notImplemented("switch statement");
+                break;
+            case "do_kw":
+                notImplemented("do statement");
+                break;
+            case "while_kw":
+                notImplemented("while statement");
+                break;
+            case "break_kw":
+                notImplemented("break statement");
+                break;
+            case "continue_kw":
+                notImplemented("continue statement");
+                break;
+            case "return_kw":
+                notImplemented("return statement");
+                break;
+            case "throw_kw":
+                // for some reason 'throw' is for <throws statement> and 'throws' is for <throws> 
+                notImplemented("throws statement");
+                break;
+            case "synchronized_kw":
+                // TODO: Check if this has a python analogue
+                notImplemented("synchronized statement");
+                break;
+            case "try_kw":
+                notImplemented("try statement");
+                break;
+            default:
+                //with everything else weeded out. It's either an <expression statement> or a <labeled statement>. Let's worry about <labeled statement> some other time.
+                notImplemented("expression statement");
+        }
+        return stmnt;
+    }
+    
+    
+    
 	// <local variable declaration statement> ::= <local variable declaration> ;
 	ASTNode localVariableDeclarationStatement() throws Exception
 	{
