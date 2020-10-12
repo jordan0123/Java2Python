@@ -116,10 +116,10 @@ public class Parser {
 	{
 		enterNT("blockStatements");
         ASTNode blockStmnts = new ASTNode("block statements", null);
-        while(curTok.tokenCode() != 3004)
+        while(curTok.tokenCode() != 3004) // close_bracket_lt
         {
             // error msg if reach EOF while parsing
-            if(curTok.tokenCode() == 4001)
+            if(curTok.tokenCode() == 4001) // EOF
             {
                 errorMsg("}",curTok.getLine(), curTok.getPos());    
             }
@@ -155,7 +155,7 @@ public class Parser {
 	ASTNode localVariableDeclarationStatement() throws Exception
 	{
 		enterNT("localVariableDeclarationStatement");
-		ASTNode localVarDecStmnt = new ASTNode("local variable declaration statement",null); 
+		ASTNode localVarDecStmnt = new ASTNode("local variable declaration statement", null); 
         localVarDecStmnt.addChild(localVariableDeclaration());
         // TODO: Check for ;. Not sure on ordering of things if I should expect next token or check current token. Printing for now.
         System.out.println("The current token which should be ; is " + curTok.tokenName());
@@ -230,7 +230,7 @@ public class Parser {
         {
             varDecs.addChild(variableDeclarator());
             JavaToken nextTok = lookAhead(1);
-            if(nextTok.tokenCode() == 3007)
+            if(nextTok.tokenCode() == 3007) // comma_lt
             {
                 // increment ahead of ,
                 nextNonSpace();
@@ -243,7 +243,7 @@ public class Parser {
             }
         }
         // while , is found after variableDeclarator() call
-        while(curTok.tokenCode() != 3007); 
+        while(curTok.tokenCode() != 3007); // comma_lt
         exitNT("variableDeclarators");
         return varDecs;
 	}
@@ -263,8 +263,8 @@ public class Parser {
         JavaToken nextTok = lookAhead(1);
         if (nextTok.tokenCode() == 2032) // = 
         {
-            nextNonSpace(); //advance to =
-            nextNonSpace(); //advance to next token
+            nextNonSpace(); // advance to =
+            nextNonSpace(); // advance to next token
             varDec.addChild(variableInitializer());
         }
 		exitNT("variableDeclarator");
@@ -283,9 +283,9 @@ public class Parser {
         String id = curTok.getLiteral();
         // check if array identifier looking for '['
         JavaToken nextTok = lookAhead(1);
-		if(nextTok.tokenCode() == 2003 )
+		if(nextTok.tokenCode() == 2003 ) // [
         {   
-            nextNonSpace(); //advance to [
+            nextNonSpace(); // advance to [
             expect("]", true); // advances again checking for ]
             varDecID = new ASTNode("array identifier", id);    
         }
@@ -345,6 +345,41 @@ public class Parser {
         }
         return assExp;
 	}
+	
+	/*
+	 * <conditional expression> ::= <conditional or expression> | 
+	 * 								<conditional or expression> ? <expression> : <conditional expression>
+	 */
+	// INCOMPLETE
+	ASTNode conditionalExpression()
+	{
+		ASTNode cndExpr = new ASTNode("conditional expression", null);
+		cndExpr.addChild(conditionalOrExpression());
+		return cndExpr;
+	}
+	
+	/*
+	 * <conditional or expression> ::= <conditional and expression> | 
+	 * 									<conditional or expression> || <conditional and expression>
+	 */
+	ASTNode conditionalOrExpression()
+	{
+		
+	}
+	
+	/*
+	 * <assignment> ::= <left hand side> <assignment operator> <assignment expression>
+	 */
+	// INCOMPLETE
+	ASTNode assignment() throws Exception
+	{
+		ASTNode assnmnt = new ASTNode("assignment", null);
+		JavaToken nextTok = lookAhead(1);
+		
+		return assnmnt;
+	}
+	
+	
 	// print out the non-terminal being entered
 	void enterNT(String s)
 	{
