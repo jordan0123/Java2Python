@@ -144,6 +144,7 @@ public class Parser {
         else
         {
             System.out.println("This is a statement. Not implemented yet.");
+            System.exit(0);
             //blockStmnt.addChild(statement());
         }
         
@@ -158,7 +159,8 @@ public class Parser {
 		ASTNode localVarDecStmnt = new ASTNode("local variable declaration statement", null); 
         localVarDecStmnt.addChild(localVariableDeclaration());
         // TODO: Check for ;. Not sure on ordering of things if I should expect next token or check current token. Printing for now.
-        System.out.println("The current token which should be ; is " + curTok.tokenName());
+        expect("semi_colon_lt", false);
+        nextNonSpace(); //advance past ';'
 		exitNT("localVariableDeclarationStatement");
         return localVarDecStmnt;
 	}
@@ -202,6 +204,7 @@ public class Parser {
     // TODO: Handle <reference type>
     ASTNode type() throws Exception
     {   
+        enterNT("type");
         ASTNode retVal;
         JavaToken nextTok = lookAhead(1);
         if(nextTok.tokenCode() == 2003) // open [
@@ -214,6 +217,7 @@ public class Parser {
         else{
             retVal = new ASTNode("primitive type", curTok.getLiteral());
         }
+        exitNT("type");
         return retVal;
     }
     
@@ -242,8 +246,6 @@ public class Parser {
                 moreDecs = false;    
             }
         }
-        // while , is found after variableDeclarator() call
-        while(curTok.tokenCode() != 3007); // comma_lt
         exitNT("variableDeclarators");
         return varDecs;
 	}
@@ -300,38 +302,45 @@ public class Parser {
 	/*
 	 * <variable initializer> ::= <expression> | <array initializer>
 	 */
-	ASTNode variableInitializer()
+	ASTNode variableInitializer() throws Exception
 	{
+        enterNT("variableInitializer");
         ASTNode varInit = new ASTNode("variable initializer", null);
         //check for array initializer start symbol '{'
         if(curTok.tokenCode() == 3003)
         {
-            varInit.addChild(arrayInitializer());
+            System.out.println("Array initialier not supported yet!");
+            //varInit.addChild(arrayInitializer());
         }
         else
         {
             varInit.addChild(expression());
         }
+        exitNT("variableInitializer");
         return varInit;
 	}
 	
 	/*
 	 * <expression> ::= <assignment expression>
 	 */
-	ASTNode expression()
+	ASTNode expression() throws Exception
 	{
+        enterNT("expression");
         ASTNode exp = new ASTNode("expression", null);
         exp.addChild(assignmentExpression());
+        exitNT("expression");
         return exp;
 	}
 	
 	/*
 	 * <assignment expression> ::= <conditional expression> | <assignment>
 	 */
-	ASTNode assignmentExpression()
+	ASTNode assignmentExpression() throws Exception
 	{
 		//look ahead to see if next token is an <assignment operator>
         //TODO: Assumes <left hand side> is one token. Won't work for field access or array access now but could extend to handle by ignoring [ and ] in lookahead
+        
+        enterNT("assignmentExpression");
         ASTNode assExp = new ASTNode("assignment expression", null);
         JavaToken nextTok = lookAhead(1);
         String[] assOps = {"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>="};
@@ -343,6 +352,7 @@ public class Parser {
         {
             assExp.addChild(conditionalExpression());
         }
+        exitNT("assignmentExpression");
         return assExp;
 	}
 	
@@ -350,22 +360,25 @@ public class Parser {
 	 * <conditional expression> ::= <conditional or expression> | 
 	 * 								<conditional or expression> ? <expression> : <conditional expression>
 	 */
-	// INCOMPLETE
+	// Hacking this so it works for a single literal. Will fix to handle simplistic expressions before expanding to more complex expressions once we've handled statements and contstructs like for and while loops
 	ASTNode conditionalExpression()
 	{
-		ASTNode cndExpr = new ASTNode("conditional expression", null);
-		cndExpr.addChild(conditionalOrExpression());
-		return cndExpr;
+        enterNT("conditionalExpression");
+		//ASTNode cndExpr = new ASTNode("conditional expression", null);
+		//cndExpr.addChild(conditionalOrExpression());
+		ASTNode cndExpr = new ASTNode(curTok.tokenName(), curTok.getLiteral());
+        exitNT("conditionalExpression");
+        return cndExpr;
 	}
 	
-	/*
-	 * <conditional or expression> ::= <conditional and expression> | 
-	 * 									<conditional or expression> || <conditional and expression>
-	 */
-	ASTNode conditionalOrExpression()
-	{
-		
-	}
+//	/*
+//	 * <conditional or expression> ::= <conditional and expression> | 
+//	 * 									<conditional or expression> || <conditional and expression>
+//	 */
+//	ASTNode conditionalOrExpression()
+//	{
+//
+//	}
 	
 	/*
 	 * <assignment> ::= <left hand side> <assignment operator> <assignment expression>
@@ -374,7 +387,7 @@ public class Parser {
 	ASTNode assignment() throws Exception
 	{
 		ASTNode assnmnt = new ASTNode("assignment", null);
-		JavaToken nextTok = lookAhead(1);
+		//JavaToken nextTok = lookAhead(1);
 		
 		return assnmnt;
 	}
