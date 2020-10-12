@@ -1,6 +1,7 @@
-import java.util.ArrayList;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Parser {
 	private LexScanner lexer;
@@ -86,17 +87,42 @@ public class Parser {
         System.exit(0);
     }
     
-    // gets nextToken and checks to see if it matches expecting token, throws error otherwise
+    // optionally gets nextToken and checks to see if it matches expecting token, throws error otherwise
     void expect(String expToken, boolean next) throws Exception
     {
         if(next)
         {
             nextNonSpace();
         }
-        if(curTok.tokenName != expToken)
+        if(curTok.tokenName() != expToken)
         {
             errorMsg(expToken, curTok.getLine(), curTok.getPos());
         }
+    }
+    
+    // gives multiple options for expected token
+    // returns tokenName if one is found
+    // else returns "" 
+    // next: determines if the next Token should be removed before checking
+    // raiseError: determines whether an error is raised if no matches are made
+    String expectOr(boolean next, boolean raiseError, String ... expTokens) throws Exception
+    {
+        String foundTok = "";
+        if(next){
+            nextNonSpace();
+        }
+        for(String tok : expTokens){
+            if(curTok.tokenName() == tok){
+                foundTok = tok;
+                break;
+            }
+        }
+        if (foundTok.length() < 1 && raiseError){
+            List<String> exp = Arrays.asList(expTokens);
+            System.out.println("Token does not match any expected tokens " + exp.toString());
+            System.exit(0);
+        }
+        return foundTok;
     }
     
     void errorMsg(String expToken, int line, int pos)
