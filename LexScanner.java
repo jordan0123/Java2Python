@@ -113,6 +113,7 @@ class LexScanner{
         tokType.put("=", new JavaToken("=", "equals_op", 2032, true));
         tokType.put("&", new JavaToken("&", "&_op", 2033, true));
         tokType.put("|", new JavaToken("|", "|_op", 2034, true));
+        tokType.put("||", new JavaToken("||", "||_op", 2035, true));
         // Special characters
         tokType.put("{", new JavaToken("{", "open_bracket_lt", 3003, false));
         tokType.put("}", new JavaToken("}", "close_bracket_lt", 3004, false));
