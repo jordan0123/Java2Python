@@ -148,6 +148,7 @@ public class Parser {
 		expect("open_bracket_lt", true);
         program.addChild(block());
         System.out.println("**FINISHED PARSE**");
+        printTree(program);
         return program;
 	}
 	
@@ -388,6 +389,7 @@ public class Parser {
         if (nextTok.tokenCode() == 2032) // = 
         {
             nextNonSpace(); // advance to =
+            varDec.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
             nextNonSpace(); // advance to next token
             varDec.addChild(variableInitializer());
         }
@@ -522,22 +524,24 @@ public class Parser {
         switch(nextTok.tokenName()){
             case "+_op":
             case "-_op":
-                additiveExpression();
+                cndExpr.addChild(additiveExpression());
                 break;
             case "*_op":
             case "/-op":
             case "%_op":
-                multiplicativeExpression();
+                cndExpr.addChild(multiplicativeExpression());
                 break;
             case ">_op":
             case "<_op":
             case "<=_op":
             case ">=_op":
             case "instanceof":
-                relationalExpression();
+                cndExpr.addChild(relationalExpression());
                 break;
             case "semi_colon_lt":
             case ")_op":
+                // end of expression add the current token
+                cndExpr.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
                 break;
             default:
                 //Probably just a unary expression 
@@ -666,5 +670,39 @@ public class Parser {
 		System.out.println("<- exit <" + s + ">");
 		depth--;
 	}
+    void printTree(ASTNode root){
+        ArrayList<ASTNode> stack = new ArrayList<ASTNode>();
+        ArrayList<String> visited = new ArrayList<String>();
+        ASTNode parentNode = new ASTNode("start", null);
+        parentNode.setDepth(0);
+        stack.add(root);
+        visited.add(root.getKey());
+        while (stack.size() > 0)
+        {
+            boolean keepParent = false;
+            // don't need childless nodes
+            if(stack.get(stack.size() -1).childCount() == 0){
+                stack.remove(stack.size() -1);
+            }
+            else{
+                parentNode = stack.get(stack.size() - 1);
+            }
+            ArrayList<ASTNode> children = parentNode.getChildren();
+            for(ASTNode child : children){
+                if(!visited.contains(child.getKey())){
+                    keepParent = true;
+                    child.setDepth(parentNode.getDepth()+1);
+                    stack.add(child);
+                    child.print(); // print ASTNODE
+                    visited.add(child.getKey());
+                    break;
+                }
+            }
+            if (!keepParent)
+            {
+                stack.remove(stack.size() - 1);
+            }
+        }
+    }
 	
 }
