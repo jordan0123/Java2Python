@@ -42,6 +42,7 @@ public class Parser {
 		{
 			nextToken();
 		}
+        //System.out.println("Current token " + curTok.tokenName());
 		return curTok.tokenName();
 	}
     
@@ -256,7 +257,7 @@ public class Parser {
                 break;
             default:
                 //with everything else weeded out. It's either an <expression statement> or a <labeled statement>. Let's worry about <labeled statement> some other time.
-                notImplemented("expression statement");
+                stmnt.addChild(expressionStatement());
         }
         return stmnt;
     }
@@ -311,6 +312,14 @@ public class Parser {
             return false;
 		}
 	}
+    // stores list of valid assignment Operators
+    // TODO: Generalize to provide various valid lists by key example "assignmentExpressions" as param would retrieve assOps list
+    String[] getAssignmentOps()
+    {
+        String[] assOps = {"equals_op", "*=", "/=", "%=", "+=", "-=", "<<=", ">>="};
+        return assOps;
+    }
+    
 	// returns a node of <primitive type> or <array type>
     // TODO: Handle <reference type>
     ASTNode type() throws Exception
@@ -430,7 +439,36 @@ public class Parser {
         exitNT("variableInitializer");
         return varInit;
 	}
-	
+    /*
+     * <expression statement> ::= <statement expression> ;
+     */
+    ASTNode expressionStatement() throws Exception
+    {
+        enterNT("expressionStatement");
+        ASTNode expStmnt = new ASTNode("expression statement", null);
+        expStmnt.addChild(statementExpression());
+        expect("semi_colon_lt", true);
+        nextNonSpace(); //advance past ';'
+        exitNT("expressionStatement");
+        return expStmnt;
+    }
+    
+	/*
+     * <statement expression> ::= <assignment> | 
+     *           <preincrement expression> | <postincrement expression>
+     *            <predecrement expression> | <postdecrement expression> | 
+     *           <method invocation> | <class instance creation expression>
+     *  INCOMPLETE ASSUMES ASSIGNMENT
+     */ 
+    ASTNode statementExpression() throws Exception
+    {
+        enterNT("statementExpression");
+        ASTNode stmntExp = new ASTNode("statement expression", null);
+        stmntExp.addChild(assignment());
+        exitNT("statementExpression");
+        return stmntExp;
+    }
+    
 	/*
 	 * <expression> ::= <assignment expression>
 	 */
@@ -454,7 +492,7 @@ public class Parser {
         enterNT("assignmentExpression");
         ASTNode assExp = new ASTNode("assignment expression", null);
         JavaToken nextTok = lookAhead(1);
-        String[] assOps = {"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>="};
+        String[] assOps = getAssignmentOps();
         if(Arrays.asList(assOps).contains(nextTok.tokenName()))
         {
             assExp.addChild(assignment());
@@ -494,15 +532,33 @@ public class Parser {
 	/*
 	 * <assignment> ::= <left hand side> <assignment operator> <assignment expression>
 	 */
-	// INCOMPLETE
 	ASTNode assignment() throws Exception
 	{
+        enterNT("assignment");
 		ASTNode assnmnt = new ASTNode("assignment", null);
-		//JavaToken nextTok = lookAhead(1);
-		
+        assnmnt.addChild(leftHandSide());
+        String[] assOps = getAssignmentOps();
+        expectOr(true, true, assOps);
+        assnmnt.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        nextNonSpace(); //advance past assignment exp
+        assnmnt.addChild(assignmentExpression());
+        exitNT("assignment");
 		return assnmnt;
 	}
 	
+    /*
+     *
+     *<left hand side> ::= <expression name> | <field access> | <array access>
+     * INCOMPLETE ONLY HANDLES EXPRESSION NAME which it assumes to be an identifier
+     */
+    ASTNode leftHandSide() throws Exception
+    {
+        enterNT("leftHandSide");
+        expect("identifier", false);
+        ASTNode lhs = new ASTNode(curTok.tokenName(), curTok.getLiteral());
+        exitNT("leftHandSide");
+        return lhs;
+    }
 	
 	// print out the non-terminal being entered
 	void enterNT(String s)
