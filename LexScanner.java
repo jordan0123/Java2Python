@@ -156,7 +156,7 @@ class LexScanner{
         }else if(isID(lexeme)){
             return new JavaToken(lexeme, "identifier", 3001);
         }else{
-            return new JavaToken("DNE", "DNE", 5001); // Does not exist
+            return new JavaToken(lexeme, "DNE", 5001); // Does not exist
         }
     }
     
