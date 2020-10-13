@@ -51,12 +51,29 @@ class ASTNode {
     String getKey(){
         return this.key;
     }
+    //get the number of child nodes
+    int childCount(){
+        return this.children.size();
+    }
+    
     // for printing depth
     void setDepth(int n){
         this.depth = n;
     }
     int getDepth(){
         return this.depth;
+    }
+    
+    void print(){
+        for(int i = 0; i < this.depth; i++ ){
+            System.out.print(" ");
+        }
+        if(this.value != null){
+            System.out.println(this.value + "    <" + this.type + ">");
+        }
+        else{
+            System.out.println("<" + this.type + ">");
+        }
     }
     
 }

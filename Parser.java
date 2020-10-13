@@ -145,8 +145,8 @@ public class Parser {
 		System.out.println("**BEGIN PARSE**");
         ASTNode program = new ASTNode("program", null);
         // TODO: Replace with call to typeDeclarations() when ready
-		expect("open_bracket_lt", true);
-        program.addChild(block());
+		//expect("open_bracket_lt", true);
+        program.addChild(blockStatements());
         System.out.println("**FINISHED PARSE**");
         printTree(program);
         return program;
@@ -178,7 +178,11 @@ public class Parser {
 	{
 		enterNT("blockStatements");
         ASTNode blockStmnts = new ASTNode("block statements", null);
-        while(curTok.tokenCode() != 3004) // close_bracket_lt
+        //to handle Java code without {}. Python doesn't need class info so we don't need to require it
+        if(this.curTok == null){
+            nextNonSpace();
+        }
+        while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001) // close_bracket_lt
         {
             // error msg if reach EOF while parsing
             if(curTok.tokenCode() == 4001) // EOF
@@ -560,6 +564,12 @@ public class Parser {
                 case "instanceof":
                     cndExpr.addChild(relationalExpression());
                     break;
+                case "||_op":
+                    cndExpr.addChild(conditionalOrExpression());
+                    break;
+                case "&&_op":
+                    cndExpr.addChild(conditionalAndExpression());
+                    break;
                 case "semi_colon_lt":
                 case ")_op":
                     // end of expression add the current token
@@ -631,16 +641,38 @@ public class Parser {
         return multiExp;
     }
     
-    
-	
-//	/*
-//	 * <conditional or expression> ::= <conditional and expression> | 
-//	 * 									<conditional or expression> || <conditional and expression>
-//	 */
-//	ASTNode conditionalOrExpression()
-//	{
-//
-//	}
+    /*
+     *<conditional or expression> ::= <unary> || <conditional *expression>
+     */
+    ASTNode conditionalOrExpression() throws Exception
+    {
+        enterNT("conditionalOrExpression");
+        ASTNode condOrExp = new ASTNode("conditional or expression", null);
+        condOrExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        expectOr(true, true, "||_op");
+        condOrExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        nextNonSpace(); // advance past operator
+        condOrExp.addChild(conditionalExpression());
+        exitNT("conditionalOrExpression");
+        return condOrExp;
+    }
+        
+        
+    /*
+     *<conditional and expression> ::= <unary> && <conditional expression>
+     */
+    ASTNode conditionalAndExpression() throws Exception
+    {
+        enterNT("conditionalAndExpression");
+        ASTNode condAndExp = new ASTNode("conditional or expression", null);
+        condAndExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        expectOr(true, true, "&&_op");
+        condAndExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        nextNonSpace(); // advance past operator
+        condAndExp.addChild(conditionalExpression());
+        exitNT("conditionalOrExpression");
+        return condAndExp;
+    }
 	
 	/*
 	 * <assignment> ::= <left hand side> <assignment operator> <assignment expression>
