@@ -50,18 +50,17 @@ class SourceArray {
         if(!(this.skip)){
             while(matcher.find()){
                 // handles unix and windows newlines
-                if(matcher.group().matches("\\n")){
-                    line++;
-                    sourceIndex++;
-                    pos = 0;
-                }
-                else if(matcher.group().matches("\\r\\n")){
+                if(matcher.group().matches("\\r\\n")){
                     line++;
                     sourceIndex = sourceIndex + 2;
                     pos = 0;
                 }
+                else if(matcher.group().matches("\\n")){
+                    line++;
+                    sourceIndex++;
+                    pos = 0;
+                }
                 else{
-                    //lastPos = pos;
                     pos = pos + matcher.start() - sourceIndex;
                     sourceIndex = matcher.start();
                     this.lex = matcher.group();
