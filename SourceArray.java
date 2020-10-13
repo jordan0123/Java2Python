@@ -49,7 +49,8 @@ class SourceArray {
         String lex;
         if(!(this.skip)){
             while(matcher.find()){
-                if(matcher.group().matches("\\n")){
+                // handles unix and windows newlines
+                if(matcher.group().matches("\\n") || matcher.group().matches("\\r\\n")){
                     line++;
                     sourceIndex++;
                     //lastPos = pos;
