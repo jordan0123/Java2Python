@@ -236,7 +236,7 @@ public class Parser {
                 notImplemented("do statement");
                 break;
             case "while_kw":
-                notImplemented("while statement");
+                stmnt.addChild(whileStatement());
                 break;
             case "break_kw":
                 notImplemented("break statement");
@@ -649,6 +649,22 @@ public class Parser {
         exitNT("leftHandSide");
         return lhs;
     }
+    
+    ASTNode whileStatement() throws Exception
+    {
+        enterNT("whileExpression");
+        expect("while_kw", false);
+        ASTNode whileExp = new ASTNode("while expression", null);
+        expect("(_op", true);
+        nextNonSpace(); // move past (
+        whileExp.addChild(expression());
+        expect(")_op", true);
+        expect("open_bracket_lt", true);
+        whileExp.addChild(statement());
+        exitNT("whileExpression");
+        return whileExp;
+    }
+    
 	
 	// print out the non-terminal being entered
 	void enterNT(String s)
