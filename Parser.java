@@ -62,10 +62,12 @@ public class Parser {
     JavaToken lookAhead(int n) throws Exception
     {
         JavaToken tok;
+        //printBuffer();
         while(n > buffer.size()){
             tok = nextPeekToken();
             buffer.add(tok);
         }
+        //printBuffer();
         return buffer.get(n - 1);
     }
     
@@ -120,7 +122,7 @@ public class Parser {
         }
         if (foundTok.length() < 1 && raiseError){
             List<String> exp = Arrays.asList(expTokens);
-            System.out.println("Token does not match any expected tokens " + exp.toString());
+            System.out.println("Token "+ curTok.tokenName() + " does not match any expected tokens " + exp.toString());
             System.exit(0);
         }
         return foundTok;
@@ -515,11 +517,12 @@ public class Parser {
         enterNT("conditionalExpression");
 		ASTNode cndExpr = new ASTNode("conditional expression", null);
 		expectOr(false, true, "identifier", "string_lt", "decimal_lt", "integer_lt");
+        //DEBUGSystem.out.println("The current token in conditional expression is " + curTok.tokenName());
         JavaToken nextTok = lookAhead(1);
         switch(nextTok.tokenName()){
             case "+_op":
             case "-_op":
-                notImplemented("additive expression");
+                additiveExpression();
                 break;
             case "*_op":
             case "/-op":
@@ -533,6 +536,8 @@ public class Parser {
             case "instanceof":
                 notImplemented("relational expression");
                 break;
+            case "semi_colon_lt":
+                break;
             default:
                 //Probably just a unary expression 
                 cndExpr.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
@@ -541,6 +546,26 @@ public class Parser {
         exitNT("conditionalExpression");
         return cndExpr;
 	}
+    /*
+     *<additive expression> ::= <multiplicative expression> | 
+     *                   <additive expression> + <multiplicative expression> 
+     *                   <additive expression> - <multiplicative expression>
+     *
+     */
+    ASTNode additiveExpression() throws Exception
+    {
+        enterNT("additiveExpression");
+        ASTNode addExp = new ASTNode("additive expression", null);
+        addExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        expectOr(true, true, "+_op", "-_op");
+        addExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        nextNonSpace(); // advance past operator
+        addExp.addChild(conditionalExpression());
+        exitNT("additiveExpression");
+        return addExp;
+    }
+    
+    
 	
 //	/*
 //	 * <conditional or expression> ::= <conditional and expression> | 
