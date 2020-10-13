@@ -485,6 +485,20 @@ public class Parser {
         return exp;
 	}
 	
+    /*
+	 * <parenthesized expression> ::= (<expression>)
+	 */
+	ASTNode parenthesizedExpression() throws Exception
+	{
+        enterNT("parenthesized expression");
+        ASTNode parExp = new ASTNode("parenthesized expression", null);
+        nextNonSpace(); //advance past (
+        parExp.addChild(expression());
+        nextNonSpace(); // advance past )
+        exitNT("parenthesized expression");
+        return parExp;
+	}
+    
 	/*
 	 * <assignment expression> ::= <conditional expression> | <assignment>
 	 */
@@ -518,35 +532,42 @@ public class Parser {
 	{
         enterNT("conditionalExpression");
 		ASTNode cndExpr = new ASTNode("conditional expression", null);
-		expectOr(false, true, "identifier", "string_lt", "decimal_lt", "integer_lt");
+		expectOr(false, true, "identifier", "string_lt", "decimal_lt", "integer_lt", "(_op");
         //DEBUGSystem.out.println("The current token in conditional expression is " + curTok.tokenName());
-        JavaToken nextTok = lookAhead(1);
-        switch(nextTok.tokenName()){
-            case "+_op":
-            case "-_op":
-                cndExpr.addChild(additiveExpression());
-                break;
-            case "*_op":
-            case "/-op":
-            case "%_op":
-                cndExpr.addChild(multiplicativeExpression());
-                break;
-            case ">_op":
-            case "<_op":
-            case "<=_op":
-            case ">=_op":
-            case "instanceof":
-                cndExpr.addChild(relationalExpression());
-                break;
-            case "semi_colon_lt":
-            case ")_op":
-                // end of expression add the current token
-                cndExpr.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-                break;
-            default:
-                //Probably just a unary expression 
-                cndExpr.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-        }      
+        if(curTok.tokenName() == "(_op")
+        {
+            cndExpr.addChild(parenthesizedExpression());
+        }
+        else
+        {
+            JavaToken nextTok = lookAhead(1);
+            switch(nextTok.tokenName()){
+                case "+_op":
+                case "-_op":
+                    cndExpr.addChild(additiveExpression());
+                    break;
+                case "*_op":
+                case "/-op":
+                case "%_op":
+                    cndExpr.addChild(multiplicativeExpression());
+                    break;
+                case ">_op":
+                case "<_op":
+                case "<=_op":
+                case ">=_op":
+                case "instanceof":
+                    cndExpr.addChild(relationalExpression());
+                    break;
+                case "semi_colon_lt":
+                case ")_op":
+                    // end of expression add the current token
+                    cndExpr.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+                    break;
+                default:
+                    //Probably just a unary expression 
+                    cndExpr.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+            }
+        }
 		//ASTNode cndExpr = new ASTNode(curTok.tokenName(), curTok.getLiteral());
         exitNT("conditionalExpression");
         return cndExpr;
