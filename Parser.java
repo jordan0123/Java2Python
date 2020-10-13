@@ -527,16 +527,17 @@ public class Parser {
             case "*_op":
             case "/-op":
             case "%_op":
-                notImplemented("multiplicative expression");
+                multiplicativeExpression();
                 break;
             case ">_op":
             case "<_op":
             case "<=_op":
             case ">=_op":
             case "instanceof":
-                notImplemented("relational expression");
+                relationalExpression();
                 break;
             case "semi_colon_lt":
+            case ")_op":
                 break;
             default:
                 //Probably just a unary expression 
@@ -548,9 +549,9 @@ public class Parser {
 	}
     /*
      *<additive expression> ::= <multiplicative expression> | 
-     *                   <additive expression> + <multiplicative expression> 
-     *                   <additive expression> - <multiplicative expression>
-     *
+     *                   <unary expression> + <multiplicative expression> 
+     *                   <unary expression> - <multiplicative expression>
+     * TODO: Need to be able to not add the first operand if it's part of a chain of expressions
      */
     ASTNode additiveExpression() throws Exception
     {
@@ -563,6 +564,44 @@ public class Parser {
         addExp.addChild(conditionalExpression());
         exitNT("additiveExpression");
         return addExp;
+    }
+
+    /*
+     *<multiplicative expression> ::= <unary expression> * <conditional expression> | 
+     *               <unary expression> / <conditional expression> | 
+     *               <unary expression> % <conditional expression> 
+     */
+    ASTNode multiplicativeExpression() throws Exception
+    {
+        enterNT("multiplicativeExpression");
+        ASTNode multiExp = new ASTNode("multiplicative expression", null);
+        multiExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        expectOr(true, true, "*_op", "/_op", "%_op");
+        multiExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        nextNonSpace(); // advance past operator
+        multiExp.addChild(conditionalExpression());
+        exitNT("multiplicativeExpression");
+        return multiExp;
+    }
+    
+    /*
+     *<relational expression> ::= <unary expression> < <conditional expression> | 
+     *                   <unary expression> > <conditional expression> | 
+     *                   <unary expression> <= <shift expression> | 
+     *                   <unary expression> >= <shift expression> | 
+     *                   <unary expression> instanceof <reference type>
+     */
+    ASTNode relationalExpression() throws Exception
+    {
+        enterNT("relationalExpression");
+        ASTNode multiExp = new ASTNode("relational expression", null);
+        multiExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        expectOr(true, true, "<_op", ">_op", "<=_op", ">=_op");
+        multiExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        nextNonSpace(); // advance past operator
+        multiExp.addChild(conditionalExpression());
+        exitNT("relationalExpression");
+        return multiExp;
     }
     
     
