@@ -130,7 +130,7 @@ public class Parser {
     
     void errorMsg(String expToken, int line, int pos)
     {
-        System.out.println("Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName());
+        System.out.println("Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral());
         System.exit(0);
     }
         
