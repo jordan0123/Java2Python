@@ -506,16 +506,38 @@ public class Parser {
 	}
 	
 	/*
-	 * <conditional expression> ::= <conditional or expression> | 
+	 * <conditional expression> ::= <conditiongital or expression> | 
 	 * 								<conditional or expression> ? <expression> : <conditional expression>
 	 */
 	// Hacking this so it works for a single literal. Will fix to handle simplistic expressions before expanding to more complex expressions once we've handled statements and contstructs like for and while loops
-	ASTNode conditionalExpression()
+	ASTNode conditionalExpression() throws Exception
 	{
         enterNT("conditionalExpression");
-		//ASTNode cndExpr = new ASTNode("conditional expression", null);
-		//cndExpr.addChild(conditionalOrExpression());
-		ASTNode cndExpr = new ASTNode(curTok.tokenName(), curTok.getLiteral());
+		ASTNode cndExpr = new ASTNode("conditional expression", null);
+		expectOr(false, true, "identifier", "string_lt", "decimal_lt", "integer_lt");
+        JavaToken nextTok = lookAhead(1);
+        switch(nextTok.tokenName()){
+            case "+_op":
+            case "-_op":
+                notImplemented("additive expression");
+                break;
+            case "*_op":
+            case "/-op":
+            case "%_op":
+                notImplemented("multiplicative expression");
+                break;
+            case ">_op":
+            case "<_op":
+            case "<=_op":
+            case ">=_op":
+            case "instanceof":
+                notImplemented("relational expression");
+                break;
+            default:
+                //Probably just a unary expression 
+                cndExpr.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        }      
+		//ASTNode cndExpr = new ASTNode(curTok.tokenName(), curTok.getLiteral());
         exitNT("conditionalExpression");
         return cndExpr;
 	}
