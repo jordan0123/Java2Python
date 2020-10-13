@@ -166,6 +166,7 @@ public class Parser {
         } 
         // checks that current token is a }
         expect("close_bracket_lt", false);
+        nextNonSpace(); //advance past the close bracket
 		exitNT("block");
         return block;
 	}
@@ -186,6 +187,7 @@ public class Parser {
             }
             blockStmnts.addChild(blockStatement());
         }
+        
         exitNT("blockStatements");
 		return blockStmnts;
 	}
