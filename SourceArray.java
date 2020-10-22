@@ -47,20 +47,26 @@ class SourceArray {
     // Returns next lexeme in source file. Returns "EOF" if at end of file.
     String nextLex(){
         String lex;
+        boolean winRLast = false;
         if(!(this.skip)){
             while(matcher.find()){
                 // handles unix and windows newlines
-                if(matcher.group().matches("\\r\\n")){
+                if(matcher.group().matches("\\r")){
+                    winRLast=true;
                     line++;
-                    sourceIndex = sourceIndex + 2;
+                    sourceIndex = sourceIndex++;
                     pos = 0;
                 }
                 else if(matcher.group().matches("\\n")){
-                    line++;
+                    if(!winRLast){
+                        line++;
+                    }
+                    winRLast=false;
                     sourceIndex++;
                     pos = 0;
                 }
                 else{
+                    winRLast=false;
                     pos = pos + matcher.start() - sourceIndex;
                     sourceIndex = matcher.start();
                     this.lex = matcher.group();
