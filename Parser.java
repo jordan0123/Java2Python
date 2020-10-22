@@ -133,7 +133,12 @@ public class Parser {
         System.out.println("Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral());
         System.exit(0);
     }
-        
+    //
+    void customErrorMsg(String msg, int line, int pos)
+    {
+        System.out.println("Error (line " + line + " position " + pos + ")" + msg);
+        System.exit(0);
+    }
 
     /* TODO: Currently set up to parse a single block { } of java statements
      * Will eventually go to typeDeclarations() when <block> works and assume <package declaration> and <import declarations> are unnecessary
@@ -230,7 +235,7 @@ public class Parser {
                 stmnt.addChild(new ASTNode("empty statement", null));
                 break;
             case "if_kw":
-                notImplemented("if statement");
+                stmnt.addChild(ifStatement());
                 break;
             case "for_kw":
                 notImplemented("for statement");
@@ -707,38 +712,84 @@ public class Parser {
     
     ASTNode whileStatement() throws Exception
     {
-        enterNT("whileExpression");
+        enterNT("whileStatement");
         expect("while_kw", false);
-        ASTNode whileExp = new ASTNode("while expression", null);
+        ASTNode whileStmnt = new ASTNode("while statement", null);
         expect("(_op", true);
         nextNonSpace(); // move past (
-        whileExp.addChild(expression());
+        whileStmnt.addChild(expression());
         expect(")_op", true);
         expect("open_bracket_lt", true);
-        whileExp.addChild(statement());
-        exitNT("whileExpression");
-        return whileExp;
+        whileStmnt.addChild(statement());
+        exitNT("whileStatement");
+        return whileStmnt;
     }
     
+    ASTNode ifStatement() throws Exception
+    {
+        enterNT("ifStatement");
+        expect("if_kw", false);
+        ASTNode ifStmnt = new ASTNode("if statement", null);
+//        expect("(_op", true);
+//        nextNonSpace(); // move past (
+//        ifStmnt.addChild(expression());
+//        expect(")_op", true);
+//        expect("open_bracket_lt", true);
+        ifStmnt.addChild(ifHeaders());
+        ifStmnt.addChild(statement());
+        boolean else_found = false; //keeps track if else has appeared
+        while(curTok.tokenName() == "else_kw")
+        {
+            if(else_found)
+            {
+                customErrorMsg("Else without if", curTok.getLine(), curTok.getPos());
+            }
+            nextNonSpace();
+            if(curTok.tokenName() == "if_kw")
+            {
+                ifStmnt.addChild(new ASTNode("else if statement", null));
+                ifStmnt.addChild(ifHeaders());
+            }
+            else{
+                ifStmnt.addChild(new ASTNode("else statement", null));
+                else_found = true;
+            }
+            //check if there's an if next
+            ifStmnt.addChild(statement());
+            System.out.println(curTok.tokenName());
+        }
+        exitNT("ifStatement");
+        return ifStmnt;
+    }
+    
+    ASTNode ifHeaders() throws Exception
+    {
+        expect("(_op", true);
+        nextNonSpace(); // move past (
+        ASTNode exp = expression();
+        expect(")_op", true);
+        expect("open_bracket_lt", true);
+        return exp;
+    }
 	
 	// print out the non-terminal being entered
 	void enterNT(String s)
 	{
-		for(int i = 0; i < depth; i++)
-		{
-			System.out.print(" ");
-		}
-		System.out.println("-> enter <" + s + ">");
+//		for(int i = 0; i < depth; i++)
+//		{
+//			System.out.print(" ");
+//		}
+//		System.out.println("-> enter <" + s + ">");
 		depth++;
 	}
 	// print out the non-terminal being exited
 	void exitNT(String s)
 	{
-		for(int i = 0; i < depth; i++)
-		{
-			System.out.print(" ");
-		}
-		System.out.println("<- exit <" + s + ">");
+//		for(int i = 0; i < depth; i++)
+//		{
+//			System.out.print(" ");
+//		}
+//		System.out.println("<- exit <" + s + ">");
 		depth--;
 	}
     void printTree(ASTNode root){

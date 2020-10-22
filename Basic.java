@@ -16,3 +16,23 @@
         i = i - 1;
         taco = i;
     }
+    if(i < 3)
+    {
+     j = 4;
+    }else if(i < 3)
+    {
+        j = 5;
+    }else
+    {
+        j = 6;
+        if(j = 6)
+        {
+            k = 8;
+        }else if(j=7)
+        {
+            k = 9;
+        }else
+        {
+            k = 10;
+        }
+    }
