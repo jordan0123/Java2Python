@@ -252,7 +252,7 @@ public class Parser {
                 notImplemented("switch statement");
                 break;
             case "do_kw":
-                notImplemented("do statement");
+                stmnt.addChild(doStatement());
                 break;
             case "while_kw":
                 stmnt.addChild(whileStatement());
@@ -281,6 +281,7 @@ public class Parser {
                 //with everything else weeded out. It's either an <expression statement> or a <labeled statement>. Let's worry about <labeled statement> some other time.
                 stmnt.addChild(expressionStatement());
         }
+        exitNT("statement");
         return stmnt;
     }
     
@@ -716,6 +717,25 @@ public class Parser {
         ASTNode lhs = new ASTNode(curTok.tokenName(), curTok.getLiteral());
         exitNT("leftHandSide");
         return lhs;
+    }
+    
+    ASTNode doStatement() throws Exception
+    {
+        enterNT("doStatement");
+        expect("do_kw", false);
+        ASTNode doStmnt = new ASTNode("do statement", null);
+        expect("open_bracket_lt", true);
+        nextNonSpace(); // move past {
+        doStmnt.addChild(statement());
+        expect("close_bracket_lt", false);
+        expect("while_kw", true);
+        expect("(_op", true);
+        doStmnt.addChild(expression());
+        expect(")_op", false);
+        expect("semi_colon_lt", true);
+        exitNT("doStatement");
+        nextNonSpace();
+        return doStmnt;
     }
     
     ASTNode whileStatement() throws Exception
