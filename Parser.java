@@ -8,6 +8,7 @@ public class Parser {
 	private static int depth = 0;
     private ArrayList<JavaToken> buffer;
     private JavaToken curTok;
+    private JavaToken lastTok;
     
     Parser()
     {
@@ -24,11 +25,18 @@ public class Parser {
     {
         if (buffer.size() > 0)
         {
+            if(this.curTok != null){
+                this.lastTok = this.curTok;
+            }
             this.curTok = buffer.remove(0);
         }
         else
         {
             lexer.nextToken();
+            if(this.curTok != null && curTok.tokenCode() != 3009)
+            {
+                this.lastTok = this.curTok;
+            }
             this.curTok = lexer.getJavaToken();
         }
         return this.curTok.tokenName();
@@ -42,7 +50,7 @@ public class Parser {
 		{
 			nextToken();
 		}
-        //System.out.println("Current token " + curTok.tokenName());
+        System.out.println("Current token " + curTok.tokenName());
 		return curTok.tokenName();
 	}
     
@@ -62,12 +70,12 @@ public class Parser {
     JavaToken lookAhead(int n) throws Exception
     {
         JavaToken tok;
-        //printBuffer();
+        printBuffer();
         while(n > buffer.size()){
             tok = nextPeekToken();
             buffer.add(tok);
         }
-        //printBuffer();
+        printBuffer();
         return buffer.get(n - 1);
     }
     
@@ -238,7 +246,7 @@ public class Parser {
                 stmnt.addChild(ifStatement());
                 break;
             case "for_kw":
-                notImplemented("for statement");
+                stmnt.addChild(forStatement());
                 break;
             case "switch_kw":
                 notImplemented("switch statement");
@@ -730,11 +738,6 @@ public class Parser {
         enterNT("ifStatement");
         expect("if_kw", false);
         ASTNode ifStmnt = new ASTNode("if statement", null);
-//        expect("(_op", true);
-//        nextNonSpace(); // move past (
-//        ifStmnt.addChild(expression());
-//        expect(")_op", true);
-//        expect("open_bracket_lt", true);
         ifStmnt.addChild(ifHeaders());
         ifStmnt.addChild(statement());
         boolean else_found = false; //keeps track if else has appeared
@@ -771,25 +774,114 @@ public class Parser {
         expect("open_bracket_lt", true);
         return exp;
     }
-	
+
+    ASTNode forStatement() throws Exception
+    {
+        enterNT("forStatement");
+        expect("for_kw", false);
+        ASTNode forStmnt = new ASTNode("for statement", null);
+        expect("(_op", true);
+        nextNonSpace(); //move past (
+        if(curTok.tokenName() == "semi_colon_lt")
+        {
+            forStmnt.addChild(new ASTNode("for init", null));
+        }
+        else
+        {
+            forStmnt.addChild(forInit());
+        }
+        if(curTok.tokenName() == "semi_colon_lt")
+        {
+            forStmnt.addChild(new ASTNode("expression", null));
+        }
+        else
+        {
+            forStmnt.addChild(expression());
+            expect("semi_colon_lt", true);
+            nextNonSpace(); // move past ;
+        }
+        if(curTok.tokenName() == "semi_colon_lt")
+        {
+            forStmnt.addChild(new ASTNode("for update", null));
+        }
+        else
+        {
+            forStmnt.addChild(forUpdate());
+            expect(")_op", true);
+        }
+        System.out.println(curTok.tokenName());
+        System.exit(0);
+        
+        exitNT("for statement");
+        return forStmnt;
+    }
+    
+    ASTNode forInit() throws Exception
+    {
+        enterNT("forInit");
+        ASTNode forIn = new ASTNode("for init", null);
+        do
+        {
+            //blockStatment used to capture local var assignment TODO: Use statement expression list or var init
+            forIn.addChild(blockStatement());
+        }
+        while(lastTok.tokenName() != "semi_colon_lt");
+        exitNT("forInit");
+        return forIn;
+    }
+    
+    ASTNode forUpdate() throws Exception
+    {
+        enterNT("forUpdate");
+        ASTNode forUp = new ASTNode("for update", null);
+        forUp.addChild(statementExpressionList());
+        exitNT("forUpdate");
+        return forUp;
+    }
+    
+    ASTNode statementExpressionList() throws Exception
+    {
+        enterNT("statementExpressionList");
+        ASTNode stmntExpList = new ASTNode("statement expression list", null);
+        boolean moreStmnts = true;
+        while(moreStmnts)
+        {
+            stmntExpList.addChild(statementExpression());
+            JavaToken nextTok = lookAhead(1);
+            if(nextTok.tokenCode() == 3007) // comma_lt
+            {
+                // increment ahead of ,
+                nextNonSpace();
+                nextNonSpace();
+                moreStmnts = true;
+            }
+            else
+            {
+                moreStmnts = false;
+            }
+        }
+        exitNT("statementExpressionList");
+        return stmntExpList;
+    }
+    
 	// print out the non-terminal being entered
 	void enterNT(String s)
 	{
-//		for(int i = 0; i < depth; i++)
-//		{
-//			System.out.print(" ");
-//		}
-//		System.out.println("-> enter <" + s + ">");
+		for(int i = 0; i < depth; i++)
+		{
+			System.out.print(" ");
+		}
+		System.out.println("-> enter <" + s + ">");
 		depth++;
 	}
 	// print out the non-terminal being exited
 	void exitNT(String s)
 	{
-//		for(int i = 0; i < depth; i++)
-//		{
-//			System.out.print(" ");
-//		}
-//		System.out.println("<- exit <" + s + ">");
+		for(int i = 0; i < depth; i++)
+		{
+			System.out.print(" ");
+		}
+		System.out.println("<- exit <" + s + ">");
 		depth--;
 	}
     void printTree(ASTNode root){
