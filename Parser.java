@@ -46,7 +46,7 @@ public class Parser {
 	String nextNonSpace() throws Exception
 	{   
 		nextToken();
-		while (curTok.tokenCode() == 3009)
+		while (curTok.tokenCode() == 3009 || curTok.tokenCode() == 3014)
 		{
 			nextToken();
 		}
@@ -58,7 +58,7 @@ public class Parser {
     {
         lexer.nextToken();
         JavaToken retVal = lexer.getJavaToken();
-        while(retVal.tokenCode() == 3009)
+        while(retVal.tokenCode() == 3009 || retVal.tokenCode() == 3014)
         {
             lexer.nextToken();
             retVal = lexer.getJavaToken();

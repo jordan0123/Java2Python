@@ -6,6 +6,7 @@ class SourceArray {
     private int line; // current line
     private int pos; // current position
     private int nextPos; //next position (if correction necessary stores next lexeme position)
+    private int nextLine; //next line (if correction necessary stores next lexeme line)
     private String source; // java source code
     private String lex; //current lexeme
     private boolean skip; //used for skipping calling nextLex when curLex already set
@@ -42,6 +43,15 @@ class SourceArray {
         this.skip = true;
         this.nextPos = this.pos;
         this.pos = lastPos;
+        this.nextLine = this.line;
+    }
+    
+    void haltNext(int lastPos, int lastLine){
+        this.skip = true;
+        this.nextPos = 1;
+        this.pos = lastPos;
+        this.nextLine = this.line;
+        this.line = lastLine;
     }
 
     // Returns next lexeme in source file. Returns "EOF" if at end of file.
@@ -65,6 +75,10 @@ class SourceArray {
                     sourceIndex++;
                     pos = 0;
                 }
+                else if(matcher.group().matches("\\t")){
+                    sourceIndex++;
+                    pos++;
+                }
                 else{
                     winRLast=false;
                     pos = pos + matcher.start() - sourceIndex;
@@ -76,7 +90,8 @@ class SourceArray {
             return "EOF";
         }else{
             this.skip = false;
-            this.pos = nextPos;
+            this.pos = this.nextPos;
+            this.line = this.nextLine;
             return this.lex;
         }
     }

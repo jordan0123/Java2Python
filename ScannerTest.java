@@ -19,7 +19,7 @@ public class ScannerTest {
             e.printStackTrace();
         }
         
-        String outFile = source + "-scanner_trace_file.txt";
+        String outFile = filename + "-scanner_trace_file.txt";
         bw = new BufferedWriter((new FileWriter(outFile)));
         // Initialize LexScanner with filename of source code
         LexScanner l = new LexScanner(source);

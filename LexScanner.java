@@ -124,6 +124,7 @@ class LexScanner{
         tokType.put(" ", new JavaToken(" ", "space_lt", 3009, true));
         tokType.put("\"", new JavaToken("\"", "double_quote_lt", 3010, true));
         tokType.put("'", new JavaToken("'", "single_quote_lt", 3011, true));
+        tokType.put("/", new JavaToken("/", "backslash", 3013, true));
         // For reference but not stored in this data structure
         // id, "identifier:3001"
         // integer, "integer_lt:3002"
@@ -143,6 +144,8 @@ class LexScanner{
                     handleSpaces(lexeme);
                 }else if(lexeme.equals("\"") || lexeme.equals("'")){
                     handleString(lexeme);
+                }else if(lexeme.equals("/")){
+                    handleComment(lexeme);
                 }else{
                     advance(lexeme);
                 }
@@ -168,7 +171,7 @@ class LexScanner{
             lexeme += sa.nextLex();
         }
         //stops sa from advancing on the next lexeme 
-        sa.haltNext(lastPos);
+        sa.haltNext(startPos);
     }
     void handleSpaces(String lexeme){
         int startPos = getPosition();
@@ -192,6 +195,30 @@ class LexScanner{
             }
         }
         this.curLex += next;
+        sa.nextLex();
+        sa.haltNext(startPos);
+    }
+    
+    void handleComment(String lexeme) throws Exception{
+        int startPos = getPosition();
+        int startLine = getLine();
+        String next = sa.nextLex();
+        if(next.equals("/")){
+            this.curJavaToken = new JavaToken("single_line_comment", "single_line_comment", 3014);
+            int line = sa.currentLine();
+            next = sa.nextLex();
+            this.curLex = "";
+            while(line == sa.currentLine() && !next.equals("EOF")){
+                this.curLex += next;
+                next = sa.nextLex();
+            } 
+        }else{
+            throw new Exception("Illegal character '/' " + getLine() + " pos " + startPos);
+        }
+        //stops sa from advancing on the next lexeme
+        if(!next.equals("EOF")){
+            sa.haltNext(startPos,startLine);
+        }
     }
     
     // Returns next token
