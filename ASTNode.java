@@ -64,6 +64,10 @@ class ASTNode {
         return this.depth;
     }
     
+    String getType(){
+        return this.type;
+    }
+    
     void print(){
         for(int i = 0; i < this.depth; i++ ){
             System.out.print(" ");
