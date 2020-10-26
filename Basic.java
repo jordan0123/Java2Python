@@ -40,7 +40,8 @@
         k = k - 1;
     }while(k > 0);
 
-//    for(int k = 0; k < 10; k++){
-//        j = 5;
-//    }
+    for(int k = 0; k < 10; k++){
+        j = 5;
+    }
 i = 3 + -j;
+//int [] y = new int[3];
