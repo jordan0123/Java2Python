@@ -393,7 +393,7 @@ public class Parser {
     // TODO: Generalize to provide various valid lists by key example "assignmentExpressions" as param would retrieve assOps list
     String[] getAssignmentOps()
     {
-        String[] assOps = {"equals_op", "*=", "/=", "%=", "+=", "-=", "<<=", ">>="};
+        String[] assOps = {"equals_op", "*=_op", "/=_op", "%=_op", "+=_op", "-=_op", "<<=_op", ">>=_op"};
         return assOps;
     }
     

@@ -49,3 +49,4 @@ y[2] = 2;
 diameter = 3.0;
 unit = "metric";
 circle.x = radius(diameter, unit);
+i *= 3;
