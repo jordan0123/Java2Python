@@ -186,7 +186,6 @@ class LexScanner{
     void handleString(String lexeme) throws Exception{
         String next;
         int startPos = getPosition();
-        this.curJavaToken = new JavaToken("string_lt", "string_lt", 3012);
         while(!(next = sa.nextLex()).equals(lexeme)){
             if(next.equals("EOF")){
                 throw new Exception("String starting at line " + getLine() + " pos " + startPos + " is unterminated.");
@@ -195,6 +194,7 @@ class LexScanner{
             }
         }
         this.curLex += next;
+        this.curJavaToken = new JavaToken(this.curLex, "string_lt" ,3012);
         sa.nextLex();
         sa.haltNext(startPos);
     }
@@ -204,7 +204,6 @@ class LexScanner{
         int startLine = getLine();
         String next = sa.nextLex();
         if(next.equals("/")){
-            this.curJavaToken = new JavaToken("single_line_comment", "single_line_comment", 3014);
             int line = sa.currentLine();
             next = sa.nextLex();
             this.curLex = "";
@@ -215,6 +214,7 @@ class LexScanner{
         }else{
             throw new Exception("Illegal character '/' " + getLine() + " pos " + startPos);
         }
+        this.curJavaToken = new JavaToken(this.curLex, "single_line_comment", 3014);
         //stops sa from advancing on the next lexeme
         if(!next.equals("EOF")){
             sa.haltNext(startPos,startLine);
