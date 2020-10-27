@@ -366,7 +366,6 @@ public class Parser {
 			errorMsg("type", curTok.getLine(), curTok.getPos());
         }
         localVarDec.addChild(type());
-        nextNonSpace();
         localVarDec.addChild(variableDeclarators());
 		exitNT("localVariableDeclaration");
         return localVarDec;
@@ -415,6 +414,7 @@ public class Parser {
         else{
             retVal = new ASTNode("primitive type", curTok.getLiteral());
         }
+        nextNonSpace(); //advance past type
         exitNT("type");
         return retVal;
     }
@@ -731,6 +731,7 @@ public class Parser {
                     case "semi_colon_lt":
                     case ")_op":
                     case "colon_lt":
+                    case "]":
                         // end of expression
                         if(!validExp)
                         {
@@ -764,8 +765,7 @@ public class Parser {
             String fToken = lookAheadToFind(find);
             if(fToken == "[")
             {
-                notImplemented("arrayCreationExpression");
-                //prim = arrayCreationExpression();
+                prim = arrayCreationExpression();
             }else
             {
                 //class creation
@@ -961,8 +961,90 @@ public class Parser {
         return postInc;
     }
     
+    // new <type> <dim exprs> <dims>?
+    // TODO: Handle class or interface type
+    ASTNode arrayCreationExpression() throws Exception
+    {
+        enterNT("arrayCreationExpression");
+        ASTNode arrCreate = new ASTNode("array creation expression", null);
+        nextNonSpace();
+        if(!isType()) 
+		{
+			errorMsg("type", curTok.getLine(), curTok.getPos());
+        }
+        arrCreate.addChild(new ASTNode("array type", curTok.getLiteral()));
+        nextNonSpace(); // advance past type
+        expect("[", false);
+        arrCreate.addChild(dimExprs());
+        if(curTok.tokenName() == "[")
+        {
+            arrCreate.addChild(dims());
+        }
+        exitNT("arrayCreationExpression");
+        return arrCreate;
+    }
     
+    ASTNode dimExprs() throws Exception
+    {
+        enterNT("dimExprs");
+        ASTNode dimExps = new ASTNode("dim expressions", null);
+        boolean cont = false;
+        do{
+            dimExps.addChild(dimExpr());
+            JavaToken nextTok = lookAhead(1);
+            // check for an additional dim expr (lookahead 1 to verify it's not a dim)
+            if(curTok.tokenName() == "[" && nextTok.tokenName() != "]")
+            {
+                cont = true;
+            }else
+            {
+                cont = false;
+            }
+        }while(cont);
+        exitNT("dimExprs");
+        return dimExps;
+    }
     
+    ASTNode dimExpr() throws Exception
+    {
+        enterNT("dimExpr");
+        expect("[", false);
+        nextNonSpace(); // advance past [
+        ASTNode dimExp = expression();
+        expect("]", false);
+        nextNonSpace(); // advance past ]
+        exitNT("dimExpr");
+        return dimExp;
+    }
+    
+    ASTNode dims() throws Exception
+    {
+        enterNT("dims");
+        ASTNode dms = new ASTNode("dims", null);
+        boolean cont = false;
+        do{
+            dms.addChild(dim());
+            if(curTok.tokenName() == "[")
+            {
+                cont = true;
+            }else
+            {
+                cont = false;
+            }
+        }while(cont);
+        exitNT("dims");
+        return dms;
+    }
+    ASTNode dim() throws Exception
+    {
+        enterNT("dim");
+        expect("[", false);
+        ASTNode dm = new ASTNode("dim", "[]");
+        expect("]", true);
+        nextNonSpace(); // advance past ]
+        exitNT("dim");
+        return dm;
+    }
 //    /*
 //     *<additive expression> ::= <multiplicative expression> | 
 //     *                   <unary expression> + <multiplicative expression> 
