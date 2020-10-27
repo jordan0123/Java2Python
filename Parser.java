@@ -579,7 +579,8 @@ public class Parser {
                     stmntExp.addChild(postIncrementExpression());
                 }else if(fToken == "semi_colon_lt" || fToken == "EOF")
                 {
-                   notImplemented("methodInvocation");
+                    stmntExp.addChild(handleIdentifier());
+                    // TODO: CHeck that it was a method invocation
                 }
         }
         exitNT("statementExpression");
@@ -651,6 +652,7 @@ public class Parser {
         
         boolean endExp = false;
         boolean validExp = false;
+        String lastPart = "";
         ASTNode lastChild;
         while(!endExp){
             System.out.println("The current token in conditional expression is " + curTok.tokenName());
@@ -675,6 +677,7 @@ public class Parser {
                         //TODO: Check for cast before calling parenthizedExp
                         cndExpr.addChild(parenthesizedExpression());
                         validExp=true;
+                        lastPart = "operand";
                         break;
                     case "+_op":
                     case "-_op":
@@ -693,11 +696,13 @@ public class Parser {
                             cndExpr.addChild(unaryExpression());
                         }
                         validExp=false;
+                        lastPart = "operator";
                         break;
                     case "~_op":
                     case "!_op":
                         cndExpr.addChild(unaryExpression());
                         validExp=false;
+                        lastPart = "operator";
                         break;
                     case "++_op":
                     case "--_op":
@@ -708,6 +713,7 @@ public class Parser {
                             notImplemented("prefixExpression");
                             validExp=false;
                         }
+                        lastPart = "operator";
                         break;
                     case "*_op":
                     case "/-op":
@@ -727,13 +733,15 @@ public class Parser {
                     case ">>_op":
                         cndExpr.addChild(binaryExpression());
                         validExp=false; //waiting on its second operand
+                        lastPart = "operator";
                         break;
                     case "semi_colon_lt":
                     case ")_op":
                     case "colon_lt":
                     case "]":
+                    case "comma_lt":
                         // end of expression
-                        if(!validExp)
+                        if(lastPart == "operator")
                         {
                             customErrorMsg("Error: Illegal end of expression", curTok.getLine(), curTok.getPos());
                         }
@@ -741,8 +749,14 @@ public class Parser {
                         break;
                     default:
                         //Some primary (field access, array access, method, literal, etc)
+                        // can't have two operands in a row
+                        if(lastPart == "operand"){
+                            //will fail
+                            expect("semi_colon_lt", false);
+                        }
                         cndExpr.addChild(primary());
                         validExp = true;
+                        lastPart = "operand";
                 }
             }
         }
@@ -897,8 +911,9 @@ public class Parser {
         enterNT("handleIdentifier");
         ASTNode id = null;
         boolean cont = true;
-        ArrayList<String> names = new ArrayList<String>();
-        names.add(curTok.getLiteral());
+//        ArrayList<String> names = new ArrayList<String>();
+//        names.add(curTok.getLiteral());
+        String name = curTok.getLiteral();
         boolean periodEnd = false;
         String idType = "identifier";
         while(cont)
@@ -907,46 +922,90 @@ public class Parser {
             switch(curTok.tokenName()){
                 case "period_lt":
                     //consume and add previous to qualified name
-                    periodEnd = true;
+                    name = name + ".";
                     idType="field access";
                     break;
                 case "(_op":
                     //method
                     idType="method";
+                    cont = false;
                     break;
                 case "[":
                     //array access
                     idType="array access";
+                    cont = false;
                     break;
                 case "identifier":
-                    names.add(curTok.getLiteral());
-                    break;
-                default:
-                    if(periodEnd){
-                        customErrorMsg("Error: Expecting identifier at", curTok.getLine(), curTok.getPos());
+                    if(name.charAt(name.length() - 1) == '.'){
+                        name = name + curTok.getLiteral();
+                        idType="field access";
+                        periodEnd = false;
+                        break;
+                    }else{
+                        expect("semi_colon_lt", false);
                     }
+                default:
+                    System.out.println("The default for this is " + curTok.tokenName());
                     cont=false;
             }
         }
+        if(periodEnd){
+            customErrorMsg("Error: Expecting identifier at", curTok.getLine(), curTok.getPos());
+        }
+        System.out.println("The id type is " + idType);
         switch(idType)
         {
             case "identifier":
-                id = new ASTNode("identifier", names.get(0));
+                id = new ASTNode("identifier", name);
                 break;
             case "method":
-                notImplemented("methodInvocation");
+                id = methodInvocation(name);
                 break;
             case "field access":
-                notImplemented("fieldAccess");
+                id = new ASTNode("field access", name);
                 break;
             case "array access":
-                notImplemented("arrayAccess");
+                id = arrayAccess(name);
+                break;
             default:
                 System.out.println("Somethings wrong with idType ###" + idType + "###");
                 System.exit(0);
         }
-        enterNT("handleIdentifier");
+        exitNT("handleIdentifier");
         return id;
+    }
+    
+    ASTNode arrayAccess(String name) throws Exception
+    {
+        enterNT("arrayAccess");
+        ASTNode arrAcc = new ASTNode("array access", null);
+        arrAcc.addChild(new ASTNode("identifier", name));
+        nextNonSpace(); // move past [
+        arrAcc.addChild(expression());
+        expect("]", false);
+        nextNonSpace();
+        exitNT("arrayAccess");
+        return arrAcc;
+    }
+    
+    ASTNode methodInvocation(String name) throws Exception
+    {
+        enterNT("methodInvocation");
+        ASTNode methInv = new ASTNode("method invocation", null);
+        methInv.addChild(new ASTNode("method name", name));
+        expect("(_op", false);
+        nextNonSpace(); // move past (
+        if(curTok.tokenName() == ")_op")
+        {
+            methInv.addChild(new ASTNode("argument list", null));
+        }else
+        {
+            methInv.addChild(argumentList());
+        }
+        expect(")_op", false);
+        nextNonSpace(); // advance past )
+        exitNT("methodInvocation");
+        return methInv;
     }
     
     ASTNode postIncrementExpression() throws Exception
@@ -1045,96 +1104,28 @@ public class Parser {
         exitNT("dim");
         return dm;
     }
-//    /*
-//     *<additive expression> ::= <multiplicative expression> | 
-//     *                   <unary expression> + <multiplicative expression> 
-//     *                   <unary expression> - <multiplicative expression>
-//     * TODO: Need to be able to not add the first operand if it's part of a chain of expressions
-//     */
-//    ASTNode additiveExpression() throws Exception
-//    {
-//        enterNT("additiveExpression");
-//        ASTNode addExp = new ASTNode("additive expression", null);
-//        addExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        expectOr(true, true, "+_op", "-_op");
-//        addExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        nextNonSpace(); // advance past operator
-//        addExp.addChild(conditionalExpression());
-//        exitNT("additiveExpression");
-//        return addExp;
-//    }
-//
-//    /*
-//     *<multiplicative expression> ::= <unary expression> * <conditional expression> | 
-//     *               <unary expression> / <conditional expression> | 
-//     *               <unary expression> % <conditional expression> 
-//     */
-//    ASTNode multiplicativeExpression() throws Exception
-//    {
-//        enterNT("multiplicativeExpression");
-//        ASTNode multiExp = new ASTNode("multiplicative expression", null);
-//        multiExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        expectOr(true, true, "*_op", "/_op", "%_op");
-//        multiExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        nextNonSpace(); // advance past operator
-//        multiExp.addChild(conditionalExpression());
-//        exitNT("multiplicativeExpression");
-//        return multiExp;
-//    }
-//    
-//    /*
-//     *<relational expression> ::= <unary expression> < <conditional expression> | 
-//     *                   <unary expression> > <conditional expression> | 
-//     *                   <unary expression> <= <shift expression> | 
-//     *                   <unary expression> >= <shift expression> | 
-//     *                   <unary expression> instanceof <reference type>
-//     */
-//    ASTNode relationalExpression() throws Exception
-//    {
-//        enterNT("relationalExpression");
-//        ASTNode multiExp = new ASTNode("relational expression", null);
-//        multiExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        expectOr(true, true, "<_op", ">_op", "<=_op", ">=_op");
-//        multiExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        nextNonSpace(); // advance past operator
-//        multiExp.addChild(conditionalExpression());
-//        exitNT("relationalExpression");
-//        return multiExp;
-//    }
-//    
-//    /*
-//     *<conditional or expression> ::= <unary> || <conditional *expression>
-//     */
-//    ASTNode conditionalOrExpression() throws Exception
-//    {
-//        enterNT("conditionalOrExpression");
-//        ASTNode condOrExp = new ASTNode("conditional or expression", null);
-//        condOrExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        expectOr(true, true, "||_op");
-//        condOrExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        nextNonSpace(); // advance past operator
-//        condOrExp.addChild(conditionalExpression());
-//        exitNT("conditionalOrExpression");
-//        return condOrExp;
-//    }
-//        
-//        
-//    /*
-//     *<conditional and expression> ::= <unary> && <conditional expression>
-//     */
-//    ASTNode conditionalAndExpression() throws Exception
-//    {
-//        enterNT("conditionalAndExpression");
-//        ASTNode condAndExp = new ASTNode("conditional or expression", null);
-//        condAndExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        expectOr(true, true, "&&_op");
-//        condAndExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
-//        nextNonSpace(); // advance past operator
-//        condAndExp.addChild(conditionalExpression());
-//        exitNT("conditionalOrExpression");
-//        return condAndExp;
-//    }
 	
+    ASTNode argumentList() throws Exception
+    {
+        enterNT("argumentList");
+        ASTNode argList = new ASTNode("argument list", null);
+        boolean cont = false;
+        do{
+            argList.addChild(expression());;
+            // check for an additional arg
+            if(curTok.tokenName() == "comma_lt")
+            {
+                nextNonSpace(); //advance past ,
+                cont = true;
+            }else
+            {
+                cont = false;
+            }
+        }while(cont);
+        exitNT("argumentList");
+        return argList;
+    }
+                        
 	/*
 	 * <assignment> ::= <left hand side> <assignment operator> <assignment expression>
 	 */
@@ -1144,7 +1135,7 @@ public class Parser {
 		ASTNode assnmnt = new ASTNode("assignment", null);
         assnmnt.addChild(leftHandSide());
         String[] assOps = getAssignmentOps();
-        expectOr(true, true, assOps);
+        expectOr(false, true, assOps);
         assnmnt.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
         nextNonSpace(); //advance past assignment exp
         assnmnt.addChild(assignmentExpression());
@@ -1161,7 +1152,7 @@ public class Parser {
     {
         enterNT("leftHandSide");
         expect("identifier", false);
-        ASTNode lhs = new ASTNode(curTok.tokenName(), curTok.getLiteral());
+        ASTNode lhs = handleIdentifier();
         exitNT("leftHandSide");
         return lhs;
     }
