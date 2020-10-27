@@ -50,3 +50,5 @@ diameter = 3.0;
 unit = "metric";
 circle.x = radius(diameter, unit);
 i *= 3;
+System.out.println("Part A" + "Part B");
+System.out.print("One" + "Two");
