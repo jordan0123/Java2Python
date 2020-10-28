@@ -253,7 +253,7 @@ public class Parser {
         if(this.curTok == null){
             nextNonSpace();
         }
-        while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001) // close_bracket_lt
+        while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 1026 = case_kw, 1007 = default_kw 
         {
             // error msg if reach EOF while parsing
             if(curTok.tokenCode() == 4001) // EOF
@@ -307,7 +307,7 @@ public class Parser {
                 stmnt.addChild(forStatement());
                 break;
             case "switch_kw":
-                notImplemented("switch statement");
+            	stmnt.addChild(switchStatement());
                 break;
             case "do_kw":
                 stmnt.addChild(doStatement());
@@ -1155,6 +1155,98 @@ public class Parser {
         ASTNode lhs = handleIdentifier();
         exitNT("leftHandSide");
         return lhs;
+    }
+    
+    ASTNode switchStatement() throws Exception
+    {
+    	enterNT("switchStatement");
+    	expect("switch_kw", false);
+    	ASTNode switchStmnt = new ASTNode("switch statement", null);
+    	expect("(_op", true);
+    	nextNonSpace(); // move past (
+    	switchStmnt.addChild(expression());
+    	expect(")_op", false);
+    	nextNonSpace(); // move past )
+    	switchStmnt.addChild(switchBlock());
+    	exitNT("switchStatement");
+    	return switchStmnt;
+    }
+    
+    ASTNode switchBlock() throws Exception
+    {
+    	enterNT("switchBlock");
+    	expect("open_bracket_lt", false);
+    	nextNonSpace(); // move past {
+    	ASTNode switchBlk = new ASTNode("switch block", null);
+    	
+    	// check if there is one before
+    	switchBlk.addChild(switchBlockStatementGroups());
+    	
+    	
+    	//expect("open_bracket_lt", false);
+    	exitNT("switchBlock");
+    	return switchBlk;
+    }
+    
+    ASTNode switchBlockStatementGroups() throws Exception
+    {
+    	enterNT("switchBlockStatementGroups");
+    	ASTNode switchBlkStmntGroups = new ASTNode("switch block statement groups", null);
+    	
+    	switchBlkStmntGroups.addChild(switchBlockStatementGroup());
+    	// recurse if multiple statement groups
+    	if (curTok.tokenCode() == 1026 || curTok.tokenCode() == 1007) switchBlockStatementGroups(); // 1026 = case_kw, 1007 = default_kw
+    	
+    	exitNT("switchBlockStatementGroups");
+    	return switchBlkStmntGroups;
+    }
+    
+    ASTNode switchBlockStatementGroup() throws Exception
+    {
+    	enterNT("switchBlockStatementGroup");
+    	ASTNode switchBlkStmntGroup = new ASTNode("switch block statement group", null);
+    	switchBlkStmntGroup.addChild(switchLabels());
+    	switchBlkStmntGroup.addChild(blockStatements());
+    	
+    	exitNT("switchBlockStatementGroup");
+    	
+    	return switchBlkStmntGroup;
+    }
+    
+    ASTNode switchLabels() throws Exception
+    {
+    	enterNT("switchLabels");
+    	ASTNode switchLbls = new ASTNode("switch labels", null);
+    	
+    	switchLbls.addChild(switchLabel());
+    	if (curTok.tokenCode() == 1026 || curTok.tokenCode() == 1007) switchLabels(); // case or default, recurse if multiple switch labels
+    	
+    	exitNT("switchLabels");
+    	
+    	return switchLbls;
+    }
+    
+    ASTNode switchLabel() throws Exception
+    {
+    	enterNT("switchLabel");
+    	ASTNode switchLbl = new ASTNode("switch label", null);
+    	if (curTok.tokenCode() == 1026) // 'case'
+    	{
+	    	nextNonSpace(); // move past "case"
+	    	switchLbl.addChild(expression());
+    	}
+    	else
+    	{
+    		expect("default_kw", false);
+    		nextNonSpace();
+    	}
+    	
+    	expect("colon_lt", false);
+    	nextNonSpace(); // move past :
+    	
+    	exitNT("switchLabel");
+    	
+    	return switchLbl;
     }
     
     ASTNode doStatement() throws Exception
