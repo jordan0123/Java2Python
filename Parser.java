@@ -219,6 +219,7 @@ public class Parser {
 		//expect("open_bracket_lt", true);
         program.addChild(blockStatements());
         System.out.println("**FINISHED PARSE**");
+        System.out.println("Current token: " + curTok.tokenName() + "Current line" + curTok.getLine());
         printTree(program);
         return program;
 	}
@@ -1168,6 +1169,8 @@ public class Parser {
     	expect(")_op", false);
     	nextNonSpace(); // move past )
     	switchStmnt.addChild(switchBlock());
+        expect("close_bracket_lt", false);
+    	nextNonSpace(); //move past 
     	exitNT("switchStatement");
     	return switchStmnt;
     }
@@ -1181,10 +1184,7 @@ public class Parser {
     	
     	// check if there is one before
     	switchBlk.addChild(switchBlockStatementGroups());
-    	
-    	
-    	//expect("open_bracket_lt", false);
-    	exitNT("switchBlock");
+        exitNT("switchBlock");
     	return switchBlk;
     }
     
@@ -1301,16 +1301,17 @@ public class Parser {
             nextNonSpace();
             if(curTok.tokenName() == "if_kw")
             {
-                ifStmnt.addChild(new ASTNode("else if statement", null));
-                ifStmnt.addChild(ifHeaders());
+                ASTNode elif = new ASTNode("else if statement", null);
+                elif.addChild(ifHeaders());
+                elif.addChild(statement());
+                ifStmnt.addChild(elif);
             }
             else{
-                ifStmnt.addChild(new ASTNode("else statement", null));
-                else_found = true;
+                ASTNode els = new ASTNode("else statement", null);
+                els.addChild(statement());
+                ifStmnt.addChild(els);
+                else_found = true; // no more else ifs or else permitted
             }
-            //check if there's an if next
-            ifStmnt.addChild(statement());
-            System.out.println(curTok.tokenName());
         }
         exitNT("ifStatement");
         return ifStmnt;
