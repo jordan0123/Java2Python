@@ -29,6 +29,46 @@ class ASTNode {
     }
     // get child nodes
     ArrayList<ASTNode> getChildren() { return children; }
+
+    // get next node with more than one or zero children
+    ASTNode getNextLeafOrBranch() {
+        return getNextLeafOrBranch(0, children.size());
+    }
+
+    ASTNode getNextLeafOrBranch(int fIndex) {
+        return getNextLeafOrBranch(fIndex, children.size());
+    }
+
+    ASTNode getNextLeafOrBranch(int fIndex, int eIndex) {
+        ASTNode tempNode = null;
+
+        for (ASTNode node : children.subList(fIndex, eIndex)) {
+            if (node.childCount() == 0 || node.childCount() > 1) {
+                return node;
+            } else {
+                tempNode = node.getNextLeafOrBranch();
+                if (tempNode != null) return tempNode;
+            }
+        }
+
+        return null;
+    }
+
+    ASTNode getChild(String type) {
+        ASTNode tempNode = null;
+
+        for (ASTNode node : children) {
+            if (node.getType() == type) {
+                return node;
+            } else {
+                tempNode = node.getChild(type);
+                if (tempNode != null) return tempNode;
+            }
+        }
+
+        return null;
+    }
+
     // set parent node
     void setParent(ASTNode parent) {this.parent = parent; }
     // get parent node
@@ -48,9 +88,11 @@ class ASTNode {
         }
         this.key = sb.toString();
     }
+
     String getKey(){
         return this.key;
     }
+
     //get the number of child nodes
     int childCount(){
         return this.children.size();
@@ -60,12 +102,17 @@ class ASTNode {
     void setDepth(int n){
         this.depth = n;
     }
+
     int getDepth(){
         return this.depth;
     }
     
     String getType(){
         return this.type;
+    }
+
+    String getValue(){
+        return this.value;
     }
     
     void print(){
