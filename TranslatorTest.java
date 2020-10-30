@@ -23,7 +23,14 @@ public class TranslatorTest {
         LexScanner l = new LexScanner(source);
         Parser p = new Parser();
         Translator t = new Translator();
+
         p.setLexer(l);
-        t.translate(p.parse());
+
+        p.setDebug(false);
+        p.setPrintTree(true);
+        t.setDebug(true);
+        t.setCrashOnError(false);
+
+        System.out.print(t.translate(p.parse()).getSource());
     }
 }

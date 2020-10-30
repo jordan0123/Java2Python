@@ -7,6 +7,8 @@
     boolean x = k + j;
     boolean b = h || x;
     int k;
+    int l = j - 3 * 2;
+	
     while(i > 2)
     {
         while(i>4)
@@ -25,10 +27,10 @@
     }else
     {
         j = 6;
-        if(j = 6)
+        if(j == 6)
         {
             k = 8;
-        }else if(j=7)
+        }else if(j==7)
         {
             k = 9;
         }else

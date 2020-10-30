@@ -10,6 +10,9 @@ public class Parser {
     private ArrayList<JavaToken> buffer;
     private JavaToken curTok;
     private JavaToken lastTok;
+
+    private boolean debug = true;
+    private boolean printTree = true;
     
     Parser()
     {
@@ -51,7 +54,7 @@ public class Parser {
 		{
 			nextToken();
 		}
-        System.out.println("Current token " + curTok.tokenName());
+        if (debug) System.out.println("Current token " + curTok.tokenName());
 		return curTok.tokenName();
 	}
     
@@ -82,12 +85,14 @@ public class Parser {
     
     // print current buffer contents
     void printBuffer(){
-        JavaToken print;
-        for(int i = 0; i < buffer.size(); i++){
-            print = buffer.get(i);
-            System.out.print("Index: " + i + " Token: " + print.tokenName() + " ");
+        if (debug) {
+            JavaToken print;
+            for(int i = 0; i < buffer.size(); i++){
+                print = buffer.get(i);
+                System.out.print("Index: " + i + " Token: " + print.tokenName() + " ");
+            }
+            System.out.println("");
         }
-        System.out.println("");
     }
     
     // Identifies when a non-implemented function would be called during parse and exit
@@ -213,14 +218,18 @@ public class Parser {
      */    
 	ASTNode parse() throws Exception
 	{
-		System.out.println("**BEGIN PARSE**");
+		if (debug) System.out.println("**BEGIN PARSE**");
         ASTNode program = new ASTNode("program", null);
         // TODO: Replace with call to typeDeclarations() when ready
 		//expect("open_bracket_lt", true);
         program.addChild(blockStatements());
-        System.out.println("**FINISHED PARSE**");
-        System.out.println("Current token: " + curTok.tokenName() + "Current line" + curTok.getLine());
-        printTree(program);
+
+        if (debug) {
+            System.out.println("**FINISHED PARSE**");
+            System.out.println("Current token: " + curTok.tokenName() + "Current line" + curTok.getLine());
+        }
+
+        if (printTree) printTree(program);
         return program;
 	}
 	
@@ -626,15 +635,17 @@ public class Parser {
         ASTNode assExp = new ASTNode("assignment expression", null);
         JavaToken nextTok = lookAhead(1);
         String[] assOps = getAssignmentOps();
+
         if(Arrays.asList(assOps).contains(nextTok.tokenName()))
         {
-            System.out.println("The next token is " + nextTok.tokenName());
+            if (debug) System.out.println("The next token is " + nextTok.tokenName());
             assExp.addChild(assignment());
         }
         else
         {
             assExp.addChild(conditionalExpression(null));
         }
+
         exitNT("assignmentExpression");
         return assExp;
 	}
@@ -656,7 +667,7 @@ public class Parser {
         String lastPart = "";
         ASTNode lastChild;
         while(!endExp){
-            System.out.println("The current token in conditional expression is " + curTok.tokenName());
+            if (debug) System.out.println("The current token in conditional expression is " + curTok.tokenName());
             if(cndExpr.childCount() > 0)
             {
                 lastChild = cndExpr.getChildren().get(cndExpr.childCount() - 1);
@@ -900,7 +911,7 @@ public class Parser {
                     customErrorMsg("Error: Illegal start of expression", curTok.getLine(), curTok.getPos());
                     break;
                 default:
-                    System.out.println("Found another ASTNode in binaryOrUnary " + lastNode);
+                    if (debug) System.out.println("Found another ASTNode in binaryOrUnary " + lastNode);
                     System.exit(0);
             }
         }
@@ -946,14 +957,14 @@ public class Parser {
                         expect("semi_colon_lt", false);
                     }
                 default:
-                    System.out.println("The default for this is " + curTok.tokenName());
+                    if (debug) System.out.println("The default for this is " + curTok.tokenName());
                     cont=false;
             }
         }
         if(periodEnd){
             customErrorMsg("Error: Expecting identifier at", curTok.getLine(), curTok.getPos());
         }
-        System.out.println("The id type is " + idType);
+        if (debug) System.out.println("The id type is " + idType);
         switch(idType)
         {
             case "identifier":
@@ -969,7 +980,7 @@ public class Parser {
                 id = arrayAccess(name);
                 break;
             default:
-                System.out.println("Somethings wrong with idType ###" + idType + "###");
+                if (debug) System.out.println("Somethings wrong with idType ###" + idType + "###");
                 System.exit(0);
         }
         exitNT("handleIdentifier");
@@ -1398,6 +1409,7 @@ public class Parser {
         enterNT("statementExpressionList");
         ASTNode stmntExpList = new ASTNode("statement expression list", null);
         boolean moreStmnts = true;
+
         while(moreStmnts)
         {
             stmntExpList.addChild(statementExpression());
@@ -1414,6 +1426,7 @@ public class Parser {
                 moreStmnts = false;
             }
         }
+
         exitNT("statementExpressionList");
         return stmntExpList;
     }
@@ -1421,23 +1434,29 @@ public class Parser {
 	// print out the non-terminal being entered
 	void enterNT(String s)
 	{
-		for(int i = 0; i < depth; i++)
-		{
-			System.out.print(" ");
-		}
-		System.out.println("-> enter <" + s + ">");
-		depth++;
-	}
+        if (debug) {
+            for(int i = 0; i < depth; i++)
+            {
+                System.out.print(" ");
+            }
+            System.out.println("-> enter <" + s + ">");
+            depth++;
+        }
+    }
+
 	// print out the non-terminal being exited
 	void exitNT(String s)
 	{
-		for(int i = 0; i < depth; i++)
-		{
-			System.out.print(" ");
-		}
-		System.out.println("<- exit <" + s + ">");
-		depth--;
-	}
+        if (debug) {
+            for(int i = 0; i < depth; i++)
+            {
+                System.out.print(" ");
+            }
+            System.out.println("<- exit <" + s + ">");
+            depth--;
+        }
+    }
+
     void printTree(ASTNode root){
         ArrayList<ASTNode> stack = new ArrayList<ASTNode>();
         ArrayList<String> visited = new ArrayList<String>();
@@ -1472,5 +1491,12 @@ public class Parser {
             }
         }
     }
-	
+    
+    void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    void setPrintTree(boolean printTree) {
+        this.printTree = printTree;
+    }
 }

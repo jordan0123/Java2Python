@@ -1,21 +1,58 @@
 import java.io.IOException;
 
+import java.util.Set;
 import java.util.Stack;
 import java.util.ArrayList;
 
 public class Translator {
-    private Stack<ASTNode> nodeStack;
+    // private PythonBuilder pBuilder;
+
+    // private Stack<ASTNode> nodeStack;
+    private Set<String> idList;
+
+    private boolean debug = true;
+    private boolean crashOnError = true;
+
+    private boolean errorOccured = false;
+
+    void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    void setCrashOnError(boolean crashOnError) {
+        this.crashOnError = crashOnError;
+    }
+
+    void notImplemented(String callName, String nodeType) {
+        errorOccured = true;
+
+        if (crashOnError || debug) {
+            System.out.println("Error::Translator::" + callName + ": encountered child type '" + nodeType + "' not implemented.");
+        }
+
+        if (crashOnError) System.exit(0);
+    }
 
     // expandStack()
     // - Expands the top node of the stack.
-    void expandStack() {
+    Stack<ASTNode> expandStack(Stack<ASTNode> nodeStack) {
         if (nodeStack.size() > 0) {
-            expandNode(nodeStack.pop());
+            ASTNode node = nodeStack.pop();
+            if (node.childCount() > 0) {
+                ArrayList<ASTNode> children = node.getChildren();
+
+                for (int i = children.size()-1; i > -1; i--) {
+                    nodeStack.push(children.get(i));
+                }
+            }
         }
+
+        return nodeStack;
     }
 
     // expandNode()
     // - Expands given node by adding children back into the stack
+/*
     void expandNode(ASTNode node)
     {
         if (node.childCount() > 0) {
@@ -26,6 +63,7 @@ public class Translator {
             }
         }
     }
+*/
 
     /** START OF TRANSLATOR HANDLERS
      * 
@@ -33,76 +71,95 @@ public class Translator {
      *      ArrayList<String> <nodeType>(ASTNode node)
      */
 
-    ArrayList<String> assignmentExpression(ASTNode node) {
-        ArrayList<String> strList = new ArrayList<String>();
+/*
+    ArrayList<String> conditionalExpression(ASTNode node, ArrayList<String> lines) {
+        return lines;
+    }
 
-        ArrayList<ASTNode> aE = node.getChildren();
-        switch(aE.get(0).getType()) {
+    ArrayList<String> assignmentExpression(ASTNode node, ArrayList<String> lines) {
+        ASTNode child = node.getChildren().get(0);
+
+        switch(child.getType()) {
             case "conditional expression":
-            strList.add(aE.get(0).getChildren().get(0).getValue());
+            lines = conditionalExpression(child, lines);
             break;
 
             default:
+            notImplemented("assignmentExpression", child.getType());
         }
 
-        return strList;
+        return lines;
     }
 
-    ArrayList<String> expression(ASTNode node) {
-        ArrayList<String> strList = new ArrayList<String>();
+    ArrayList<String> localVariableDeclaration(ASTNode node, ArrayList<String> lines) {
+        // get children of variable declarator
+        ArrayList<ASTNode> vd = node.getChild("variable declarator").getChildren();
 
-        ArrayList<ASTNode> e = node.getChildren();
-        switch (e.get(0).getType()) {
-            case "assignment expression":
-            strList = assignmentExpression(e.get(0));
-            break;
-
-            default:
+        if (vd.size() > 1) {
+            lines.add(vd.get(0) + " = " + assignmentExpression(vd.get(2)));
         }
 
-        return strList;
+        return lines;
     }
-
-    ArrayList<String> localVariableDeclaration(ASTNode node) {
-        ArrayList<String> strList = new ArrayList<String>();
-
-        ArrayList<ASTNode> lVD = node.getChildren();
-        // get children of VD node
-        ArrayList<ASTNode> vD = lVD.get(1).getChild("variable declarator").getChildren();
-
-        // append identifier
-        strList.add(vD.get(0).getValue());
-
-        // if the size of the children of VD is larger than 2, we assume variable is being initialized
-        if (vD.size() > 2) {
-            strList.set(0, strList.get(0) + " = " + expression(vD.get(2).getChildren().get(0)).get(0));
-        }
-
-        return strList;
-    }
+*/
 
     /** END OF TRANSLATOR HANDLERS */
 
-    void translate(ASTNode root)
+    PythonBuilder translate(ASTNode root)
     {
-        ArrayList<String> strList = new ArrayList<String>();
+        PythonBuilder  pBuilder = new PythonBuilder();
+        PythonBuilder tpBuilder = null; // temporary PythonBuilder
 
-        nodeStack = new Stack<ASTNode>();
+        ArrayList<ASTNode> children = null;
+
+        Stack<ASTNode> nodeStack = new Stack<ASTNode>();
         nodeStack.push(root);
 
+        nodeStack = expandStack(nodeStack);
+
         while (nodeStack.size() > 0) {
+            tpBuilder = null;
+
             switch(nodeStack.peek().getType()) {
-                case "local variable declaration":
-                strList.add(localVariableDeclaration(nodeStack.pop()).get(0));
+                case "variable declarator":
+                case "assignment":
+                children = nodeStack.pop().getChildren();
+
+                if (children.size() > 2){
+                    pBuilder.append(children.get(0).getValue() + " = ");
+                    tpBuilder = translate(children.get(2));
+
+                    pBuilder.append(tpBuilder.getCurrent());
+                    pBuilder.addLines(tpBuilder);
+                    pBuilder.addCurrent();
+                }
+
+                break;
+
+                case "parenthesized expression":
+                pBuilder.append("(");
+                tpBuilder = translate(nodeStack.pop().getChildren().get(0));
+                pBuilder.append(tpBuilder.getCurrent());
+                pBuilder.append(")");
+                pBuilder.addLines(tpBuilder);
+                break;
+
+                case "identifier":
+                case "string_lt":
+                case "+_op":
+                case "-_op":
+                case "*_op":
+                case "/_op":
+                case "integer_lt":
+                case "decimal_lt":
+                pBuilder.append(nodeStack.pop().getValue());
                 break;
 
                 default:
-                expandStack();
+                nodeStack = expandStack(nodeStack);
             }
         }
 
-        for (String e : strList) {
-            System.out.println(e);
-        }
+        return pBuilder;
     }
 }
