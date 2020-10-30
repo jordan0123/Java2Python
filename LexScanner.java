@@ -251,9 +251,11 @@ class LexScanner{
     }
     
     void getNumberToken(String lexeme){
-        String decPat = "[0-9]+([.,][0-9]+)?";
-        String intPat = "([0-9]+[,]*)+";
-        String partDecPat = "([0-9]+[,]*)+[,.]+";
+        //String decPat = "[0-9]+([.,][0-9]+)?";
+        String decPat = "[0-9]+([.]{1}[0-9]+)*";
+        //String intPat = "([0-9]+[,]*)+";
+        String intPat = "[0-9]+";
+        String partDecPat = "([0-9]+)+[.]{1}";
         boolean numeric = true;
         boolean partial = false;
         String next = "";
@@ -277,7 +279,7 @@ class LexScanner{
             }
             this.curLex = lexeme;
             next = sa.nextLex();
-            if(tokType.containsKey(next) && !(next.equals(".")) && !(next.equals(","))){
+            if(tokType.containsKey(next) && !(next.equals("."))){
                 //break 
                 numeric = false;
             }else if(!(isNumeric(lexeme)) &&  !(partial)){

@@ -1381,14 +1381,24 @@ public class Parser {
         return forStmnt;
     }
     
-    ASTNode forInit() throws Exception
+ASTNode forInit() throws Exception
     {
         enterNT("forInit");
         ASTNode forIn = new ASTNode("for init", null);
         do
         {
-            //blockStatment used to capture local var assignment TODO: Use statement expression list or var init
-            forIn.addChild(blockStatement());
+            //TODO: ADD modifiers as possible indicators
+            if(isType())
+            {
+                forIn.addChild(localVariableDeclarationStatement());
+            }
+            else
+            {
+                forIn.addChild(statementExpressionList());
+                //expect("semi_colon_lt", false);
+                nextNonSpace(); //advance past ;
+            }
+            System.out.println(curTok.getLiteral());
         }
         while(lastTok.tokenName() != "semi_colon_lt");
         exitNT("forInit");
@@ -1409,24 +1419,20 @@ public class Parser {
         enterNT("statementExpressionList");
         ASTNode stmntExpList = new ASTNode("statement expression list", null);
         boolean moreStmnts = true;
-
         while(moreStmnts)
         {
             stmntExpList.addChild(statementExpression());
-            JavaToken nextTok = lookAhead(1);
-            if(nextTok.tokenCode() == 3007) // comma_lt
+            if(curTok.tokenCode() == 3007) // comma_lt
             {
-                // increment ahead of ,
-                nextNonSpace();
-                nextNonSpace();
+                nextNonSpace(); // increment ahead of ,
                 moreStmnts = true;
+                System.out.println("More statements!");
             }
             else
             {
                 moreStmnts = false;
             }
         }
-
         exitNT("statementExpressionList");
         return stmntExpList;
     }
