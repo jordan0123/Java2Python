@@ -258,9 +258,9 @@ class LexScanner{
         String partDecPat = "([0-9]+)+[.]{1}";
         boolean numeric = true;
         boolean partial = false;
+        boolean abort = false;
         String next = "";
         int startPos = getPosition();
-        
         while(numeric){
             if(lexeme.matches(intPat)){
                 this.curJavaToken = new JavaToken(lexeme, "integer_lt", 3002, true);
@@ -273,19 +273,23 @@ class LexScanner{
                 partial = true;
             }
             else {
-                this.curJavaToken = new JavaToken(lexeme, "DNE", 5001);
-                partial = false;
-                System.exit(1);
-            }
-            this.curLex = lexeme;
-            next = sa.nextLex();
-            if(tokType.containsKey(next) && !(next.equals("."))){
-                //break 
                 numeric = false;
-            }else if(!(isNumeric(lexeme)) &&  !(partial)){
-                numeric = false;
+                abort = true;
+                
             }
-            lexeme += next;
+            //default behavior unless a non-numeric token has been encountered causing abort
+            if(!abort)
+            {
+                this.curLex = lexeme;
+                next = sa.nextLex();
+                if(tokType.containsKey(next) && !(next.equals("."))){
+                    //break 
+                    numeric = false;
+                }else if(!(isNumeric(lexeme)) &&  !(partial)){
+                    numeric = false;
+                }
+                lexeme += next;
+            }
         }
         sa.haltNext(startPos);
     }

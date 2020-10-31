@@ -124,12 +124,11 @@ public class Parser {
         int open_par = 0; // open parenthesis encountered without matching close
         int open_bra = 0; // open brackets encountered without matching close
         boolean cont = true;
-        int n = 1; //lookahead value
+        int n = 0; //lookahead value
         JavaToken tok = curTok;
         String fToken = "";
         while(cont)
         {
-            tok = lookAhead(n);
             if(find.contains(tok.tokenName()))
             {
                 if(open_par == 0 && open_bra == 0)
@@ -163,6 +162,7 @@ public class Parser {
                     break;
             }
             n++; //advance lookahead index
+            tok = lookAhead(n);
         }
         exitNT("lookAheadToFind");
         return fToken;
@@ -561,10 +561,10 @@ public class Parser {
         switch(curTok.tokenName())
         {
             case "--_op":
-                notImplemented("predecrementExpression");
+                stmntExp.addChild(prefixExpression("--_op"));
                 break;
             case "++_op":
-                notImplemented("preincrementExpression");
+                stmntExp.addChild(prefixExpression("++_op"));
                 break;
             case "new_kw":
                 notImplemented("classInstanceCreationExpression");
@@ -580,17 +580,17 @@ public class Parser {
                 find.add("EOF");
                 find.add("semi_colon_lt");
                 String fToken = lookAheadToFind(find);
+                if(debug) System.out.println("The fToken is " + fToken);
                 if(Arrays.asList(assOps).contains(fToken))
                 {
                     stmntExp.addChild(assignment());
                 }else if(fToken == "--_op"){
-                    notImplemented("postdecrementExpression");
+                    stmntExp.addChild(postfixExpression("--_op"));
                 }else if(fToken == "++_op"){
-                    stmntExp.addChild(postIncrementExpression());
+                    stmntExp.addChild(postfixExpression("++_op"));
                 }else if(fToken == "semi_colon_lt" || fToken == "EOF")
                 {
                     stmntExp.addChild(handleIdentifier());
-                    // TODO: CHeck that it was a method invocation
                 }
         }
         exitNT("statementExpression");
@@ -719,13 +719,14 @@ public class Parser {
                     case "++_op":
                     case "--_op":
                         if(cndExpr.childCount() > 0){
-                            notImplemented("postfixExpression");
+                            cndExpr.addChild(postfixExpressionOp());
                             validExp=true;
+                            lastPart = "operand";
                         }else{
-                            notImplemented("prefixExpression");
+                            cndExpr.addChild(prefixExpressionOp());
                             validExp=false;
+                            lastPart = "operator";
                         }
-                        lastPart = "operator";
                         break;
                     case "*_op":
                     case "/-op":
@@ -770,6 +771,9 @@ public class Parser {
                         validExp = true;
                         lastPart = "operand";
                 }
+            }
+            if(endToken == "ONE"){
+                endExp = true;
             }
         }
         exitNT("conditionalExpression");
@@ -870,7 +874,6 @@ public class Parser {
         binOps.put("<<_op", "shift expression");
         binOps.put(">>_op", "shift expression");
         String binaryType = binOps.get(curTok.tokenName());
-        
         ASTNode binExp = new ASTNode(binaryType, null);
         binExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral())); // add operator
         nextNonSpace(); //advance past operator
@@ -893,8 +896,12 @@ public class Parser {
             switch(lastNode){
                 case "parenthesized expression":
                 case "identifier":
+                case "prefix expression":
+                case "postfix expression":
+                case "postfix expression operator":
                     retVal = 2;
                     break;
+                case "prefix expression operator": // case where exp after prefix has not been handled yet
                 case "conditional or expression":
                 case "conditional and expression":
                 case "inclusive or expression":
@@ -1019,17 +1026,50 @@ public class Parser {
         exitNT("methodInvocation");
         return methInv;
     }
-    
-    ASTNode postIncrementExpression() throws Exception
+        
+    ASTNode postfixExpression(String operator) throws Exception
     {
-        enterNT("postIncrementExpression");
-        ASTNode postInc = new ASTNode("post increment expression", null);
-        postInc.addChild(conditionalExpression("++_op"));
-        expect("++_op", false);
-        postInc.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        enterNT("postfixExpression");
+        ASTNode postfix = new ASTNode("postfix expression",null);
+        postfix.addChild(conditionalExpression(operator));
+        expect(operator, false);
+        postfix.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
         nextNonSpace(); //move past operator
-        exitNT("postIncrementExpression");
-        return postInc;
+        exitNT("postfixExpression");
+        return postfix;
+    }
+    
+    //handles just the postfix operator (like unary expression)
+    ASTNode postfixExpressionOp() throws Exception
+    {
+        enterNT("postfixExpressionOp");
+        ASTNode postfixExpOp = new ASTNode("postfix expression operator", null);
+        postfixExpOp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral())); // add operator
+        nextNonSpace(); //advance past operator
+        exitNT("postfixExpressionOp");
+        return postfixExpOp;
+    }
+    
+    ASTNode prefixExpression(String operator) throws Exception
+    {
+        enterNT("prefixExpression");
+        ASTNode prefix = new ASTNode("prefix expression",null);
+        expect(operator, false);
+        prefix.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        nextNonSpace(); // advance past operator
+        prefix.addChild(conditionalExpression("ONE"));
+        exitNT("prefixExpression");
+        return prefix;
+    }
+    //handles just the prefix operator (like unary expression)
+    ASTNode prefixExpressionOp() throws Exception
+    {
+        enterNT("prefixExpressionOp");
+        ASTNode prefixExpOp = new ASTNode("prefix expression operator", null);
+        prefixExpOp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral())); // add operator
+        nextNonSpace(); //advance past operator
+        exitNT("prefixExpressionOp");
+        return prefixExpOp;
     }
     
     // new <type> <dim exprs> <dims>?
@@ -1426,7 +1466,6 @@ ASTNode forInit() throws Exception
             {
                 nextNonSpace(); // increment ahead of ,
                 moreStmnts = true;
-                System.out.println("More statements!");
             }
             else
             {
