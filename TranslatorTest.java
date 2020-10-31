@@ -27,7 +27,7 @@ public class TranslatorTest {
         p.setLexer(l);
 
         p.setDebug(false);
-        p.setPrintTree(true);
+        p.setPrintTree(false);
         t.setDebug(true);
         t.setCrashOnError(false);
 

@@ -9,6 +9,8 @@
     int k;
     int l = j - 3 * 2;
 	
+	h = !h;
+	
     while(i > 2)
     {
         while(i>4)
@@ -21,6 +23,7 @@
     if(i < 3)
     {
      j = 4;
+     h = 3;
     }else if(i < 3)
     {
         j = 5;
