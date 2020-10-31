@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.Stack;
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 public class Translator {
     // private PythonBuilder pBuilder;
@@ -14,6 +15,18 @@ public class Translator {
     private boolean crashOnError = true;
 
     private boolean errorOccured = false;
+
+    Hashtable<String, String> litTable;
+
+    Translator() {
+        litTable = new Hashtable<String, String>();
+
+        litTable.put("||", "or");
+        litTable.put("&&", "and");
+        litTable.put("!", "not");
+        // litTable.put("System.out.print", "print");
+        // litTable.put("System.out.println", "print");
+    }
 
     void setDebug(boolean debug) {
         this.debug = debug;
@@ -50,60 +63,14 @@ public class Translator {
         return nodeStack;
     }
 
-    // expandNode()
-    // - Expands given node by adding children back into the stack
-/*
-    void expandNode(ASTNode node)
-    {
-        if (node.childCount() > 0) {
-            ArrayList<ASTNode> children = node.getChildren();
-
-            for (int i = children.size()-1; i > -1; i--) {
-                nodeStack.push(children.get(i));
-            }
-        }
+    // remap()
+    // - remaps a Java literal to a Python literal
+    String remap(String literal) {
+        // System.out.println(literal);
+        if (literal != null && litTable.containsKey(literal)) {
+            return litTable.get(literal);
+        } else if (literal != null) return literal; else return "";
     }
-*/
-
-    /** START OF TRANSLATOR HANDLERS
-     * 
-     *  of the template:
-     *      ArrayList<String> <nodeType>(ASTNode node)
-     */
-
-/*
-    ArrayList<String> conditionalExpression(ASTNode node, ArrayList<String> lines) {
-        return lines;
-    }
-
-    ArrayList<String> assignmentExpression(ASTNode node, ArrayList<String> lines) {
-        ASTNode child = node.getChildren().get(0);
-
-        switch(child.getType()) {
-            case "conditional expression":
-            lines = conditionalExpression(child, lines);
-            break;
-
-            default:
-            notImplemented("assignmentExpression", child.getType());
-        }
-
-        return lines;
-    }
-
-    ArrayList<String> localVariableDeclaration(ASTNode node, ArrayList<String> lines) {
-        // get children of variable declarator
-        ArrayList<ASTNode> vd = node.getChild("variable declarator").getChildren();
-
-        if (vd.size() > 1) {
-            lines.add(vd.get(0) + " = " + assignmentExpression(vd.get(2)));
-        }
-
-        return lines;
-    }
-*/
-
-    /** END OF TRANSLATOR HANDLERS */
 
     PythonBuilder translate(ASTNode root)
     {
@@ -115,13 +82,14 @@ public class Translator {
         Stack<ASTNode> nodeStack = new Stack<ASTNode>();
         nodeStack.push(root);
 
-        nodeStack = expandStack(nodeStack);
+        // nodeStack = expandStack(nodeStack);
 
         while (nodeStack.size() > 0) {
             tpBuilder = null;
 
             switch(nodeStack.peek().getType()) {
                 case "variable declarator":
+                pBuilder.clearCurrent(); // TODO: cleaner solution for ignoring type tokens
                 case "assignment":
                 children = nodeStack.pop().getChildren();
 
@@ -131,7 +99,7 @@ public class Translator {
 
                     pBuilder.append(tpBuilder.getCurrent());
                     pBuilder.addLines(tpBuilder);
-                    pBuilder.addCurrent();
+                    pBuilder.addCurrent(); // commit changes being made to source
                 }
 
                 break;
@@ -144,6 +112,107 @@ public class Translator {
                 pBuilder.addLines(tpBuilder);
                 break;
 
+                case "conditional expression":
+                children = nodeStack.pop().getChildren();
+                for (ASTNode child : children) {
+                    if (child.getValue() != null && child.getValue() != "")
+                        pBuilder.append(child.getValue() + ' ');
+                    else {
+                        tpBuilder = translate(child);
+                        pBuilder.append(tpBuilder.getCurrent() + ' ');
+                        pBuilder.addLines(tpBuilder);
+                    }
+                }
+
+                //pBuilder.addCurrent();
+                break;
+
+                case "while statement":
+                children = nodeStack.pop().getChildren();
+                pBuilder.clearCurrent();
+
+                pBuilder.append("while ");
+                tpBuilder = translate(children.get(0));
+                pBuilder.append(tpBuilder.getCurrent() + ':');
+                pBuilder.addLines(tpBuilder);
+                pBuilder.addCurrent();
+
+                pBuilder.increaseIndent();
+                tpBuilder = translate(children.get(1));
+                pBuilder.addLines(tpBuilder);
+                pBuilder.decreaseIndent();
+                break;
+
+                case "if statement":
+                children = nodeStack.pop().getChildren();
+                pBuilder.clearCurrent();
+
+                pBuilder.append("if ");
+                tpBuilder = translate(children.get(0));
+                pBuilder.append(tpBuilder.getCurrent() + ':');
+                pBuilder.addLines(tpBuilder);
+                pBuilder.addCurrent();
+
+                pBuilder.increaseIndent();
+                tpBuilder = translate(children.get(1));
+                pBuilder.addLines(tpBuilder);
+                pBuilder.decreaseIndent();
+
+                if (children.size() > 2) {
+                    for (ASTNode els : children.subList(2, children.size())) {
+                        tpBuilder = translate(els);
+                        pBuilder.addLines(tpBuilder);
+                    }
+                }
+
+                break;
+
+                case "else if statement":
+                children = nodeStack.pop().getChildren();
+                pBuilder.clearCurrent();
+
+                pBuilder.append("elif ");
+                tpBuilder = translate(children.get(0));
+                pBuilder.append(tpBuilder.getCurrent() + ':');
+                pBuilder.addLines(tpBuilder);
+                pBuilder.addCurrent();
+
+                pBuilder.increaseIndent();
+                tpBuilder = translate(children.get(1));
+                pBuilder.addLines(tpBuilder);
+                pBuilder.decreaseIndent();
+                break;
+                
+                case "else statement":
+                children = nodeStack.pop().getChildren();
+                pBuilder.clearCurrent();
+
+                pBuilder.append("else:");
+                pBuilder.addCurrent();
+
+                pBuilder.increaseIndent();
+                tpBuilder = translate(children.get(0));
+                pBuilder.addLines(tpBuilder);
+                pBuilder.decreaseIndent();
+                break;
+
+                case "do statement":
+                children = nodeStack.pop().getChildren();
+                pBuilder.clearCurrent();
+
+                pBuilder.append("while True:");
+                pBuilder.addCurrent();
+
+                pBuilder.increaseIndent();
+                tpBuilder = translate(children.get(0));
+                pBuilder.addLines(tpBuilder);
+                tpBuilder = translate(children.get(1));
+                pBuilder.append("if " + tpBuilder.getCurrent() + ": break");
+                pBuilder.addCurrent();
+                pBuilder.decreaseIndent();
+                break;
+
+                /* 
                 case "identifier":
                 case "string_lt":
                 case "+_op":
@@ -154,9 +223,12 @@ public class Translator {
                 case "decimal_lt":
                 pBuilder.append(nodeStack.pop().getValue());
                 break;
+                */
 
                 default:
-                nodeStack = expandStack(nodeStack);
+                if (nodeStack.peek().getValue() != null && nodeStack.peek().getValue() != "") {
+                    pBuilder.append(remap(nodeStack.pop().getValue()));
+                } else nodeStack = expandStack(nodeStack);
             }
         }
 
