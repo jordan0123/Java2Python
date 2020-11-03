@@ -441,13 +441,9 @@ public class Parser {
         while(moreDecs)
         {
             varDecs.addChild(variableDeclarator());
-            JavaToken nextTok = lookAhead(1);
-            if(nextTok.tokenCode() == 3007) // comma_lt
+            if(curTok.tokenCode() == 3007) // comma_lt
             {
-                // increment ahead of ,
-                nextNonSpace();
-                nextNonSpace();
-                moreDecs = true;
+                nextNonSpace(); // increment ahead of ,
             }
             else
             {
