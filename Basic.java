@@ -57,3 +57,5 @@ circle.x = radius(diameter, unit);
 i *= 3;
 System.out.println("Part A" + "Part B");
 System.out.print("One" + "Two");
+
+int [] intArr = {1,2,3};

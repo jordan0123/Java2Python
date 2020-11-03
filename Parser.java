@@ -523,7 +523,7 @@ public class Parser {
         if(curTok.tokenCode() == 3003)
         {
             System.out.println("Array initialier not supported yet!");
-            //varInit.addChild(arrayInitializer());
+            varInit.addChild(arrayInitializer());
         }
         else
         {
@@ -532,6 +532,36 @@ public class Parser {
         exitNT("variableInitializer");
         return varInit;
 	}
+    
+    ASTNode arrayInitializer() throws Exception
+    {
+        enterNT("arrayInitializer");
+        ASTNode arrInit = new ASTNode("array initializer", null);
+        expect("open_bracket_lt", false);
+        nextNonSpace(); //advance past {
+        boolean moreElems = true;
+        if(curTok.tokenCode() == 3004)
+        {
+            moreElems = false; // no elems to add to array
+        }
+        while(moreElems)
+        {
+            arrInit.addChild(conditionalExpression("close_bracket_lt"));
+            if(curTok.tokenCode() == 3007) // comma_lt
+            {
+                nextNonSpace(); // increment ahead of ,
+            }
+            else
+            {
+                moreElems = false;
+            }
+        }
+        expect("close_bracket_lt", false);
+        nextNonSpace(); // advance past }
+        exitNT("arrayInitializer");
+        return arrInit;
+    }
+    
     /*
      * <expression statement> ::= <statement expression> ;
      */
@@ -757,6 +787,9 @@ public class Parser {
                         if(lastPart == "operator")
                         {
                             customErrorMsg("Error: Illegal end of expression", curTok.getLine(), curTok.getPos());
+                        }else if(lastPart == "")
+                        {
+                            customErrorMsg("Error: Expecting expression", curTok.getLine(), curTok.getPos());
                         }
                         endExp = true;
                         break;
