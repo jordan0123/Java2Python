@@ -3,6 +3,7 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
+import java.util.Map;
 
 public class Parser {
 	private LexScanner lexer;
@@ -10,6 +11,7 @@ public class Parser {
     private ArrayList<JavaToken> buffer;
     private JavaToken curTok;
     private JavaToken lastTok;
+    private Map<String,String[]> modifiers;
 
     private boolean debug = true;
     private boolean printTree = true;
@@ -18,6 +20,7 @@ public class Parser {
     Parser()
     {
         this.buffer = new ArrayList<JavaToken>();
+        initModifiers();
     }
 	
 	void setLexer(LexScanner l)
@@ -247,7 +250,6 @@ public class Parser {
             {
                 notImplemented("typeDeclarations");
             }else{
-                this.noClass = true;
                 program.addChild(blockStatements());
             }
             if (debug) {
@@ -1535,6 +1537,118 @@ ASTNode forInit() throws Exception
         }
         exitNT("statementExpressionList");
         return stmntExpList;
+    }
+    
+    ASTNode typeDeclarations() throws Exception
+	{
+		enterNT("typeDeclarations");
+        ASTNode typeDecs = new ASTNode("type declarations", null);
+        while(curTok.tokenCode() != 4001) // EOF
+        {
+            typeDecs.addChild(classDeclaration());
+        }
+        
+        exitNT("typeDeclarations");
+		return typeDecs;
+	}
+    
+    ASTNode classDeclaration() throws Exception
+    {
+        enterNT("classDeclaration");
+        ASTNode classDec = new ASTNode("class declaration", null);
+        if(isModifier(null))
+        {
+            classDec.addChild(handleModifiers("class"));
+        }
+        expect("class_kw", false);
+        expect("identifier", true);
+        classDec.addChild(new ASTNode("identifier", curTok.getLiteral()));
+        nextNonSpace(); // advance past identifier
+        classDec.addChild(classBody());
+        exitNT("classDeclaration");
+        return classDec;
+    }
+    
+    
+    void initModifiers(){
+        modifiers = new HashMap<String,String[]>();
+        String[] all = {"class","field","method"};
+        String[] fieldAndMethod = {"field","method"};
+        String[] classAndMethod = {"class","method"};
+        String[] field = {"field"};
+        String[] method = {"method"};
+        modifiers.put("public_kw", all);
+        modifiers.put("final_kw", all);
+        modifiers.put("protected_kw", fieldAndMethod);
+        modifiers.put("private_kw", fieldAndMethod);
+        modifiers.put("static_kw", fieldAndMethod);
+        modifiers.put("protected_kw", fieldAndMethod);
+        modifiers.put("abstract_kw", classAndMethod);
+        modifiers.put("transient_kw", field);
+        modifiers.put("volatile_kw", field);
+        modifiers.put("synchronized_kw", method);
+        modifiers.put("native_kw", method);
+    }
+    
+    boolean isModifier(String type) throws Exception
+    {
+        boolean retVal = false;
+        if(modifiers.containsKey(curTok.tokenName())){
+            if(type == null)
+            {
+                retVal = true;
+            }else
+            {
+                String[] types = modifiers.get(curTok.tokenName());
+                for(String mType: types){
+                    if(type == mType){
+                        retVal = true;
+                    }
+                }
+            }
+        }
+        return retVal;
+    }
+    
+    ASTNode handleModifiers(String type) throws Exception
+    {
+        enterNT("handleModifiers");
+        ASTNode mod = new ASTNode("modifiers", null);
+        while(isModifier(null))
+        {
+            if(!isModifier(type))
+            {
+                customErrorMsg(curTok.getLiteral() + " is not a " + type + " modifier", curTok.getLine(), curTok.getPos());
+            }
+            mod.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+            nextNonSpace(); // advance past modifier
+        }
+        exitNT("handleModifiers");
+        return mod;
+    }
+    
+    ASTNode classBody() throws Exception
+    {
+        enterNT("classBody");
+        ASTNode clsBody = new ASTNode("class body", null);
+        expect("open_bracket_lt", false);
+        String s = nextNonSpace();
+        // if not } then contains block statements
+        if(s != "close_bracket_lt"){
+            clsBody.addChild(classBodyDeclarations());
+        } 
+        // checks that current token is a }
+        expect("close_bracket_lt", false);
+        nextNonSpace(); //advance past the close bracket
+        exitNT("classBody");
+        return clsBody;
+    }
+    
+    ASTNode classBodyDeclarations(){
+        enterNT("classBodyDeclarations");
+        ASTNode clsBodyDecs = new ASTNode("class body declarations", null);
+        exitNT("classBodyDeclarations");
+        return clsBodyDecs;
     }
     
 	// print out the non-terminal being entered
