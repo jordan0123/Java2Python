@@ -130,6 +130,10 @@ public class Parser {
         int open_bra = 0; // open brackets encountered without matching close
         boolean cont = true;
         int n = 0; //lookahead value
+        // if parse just started need to initialize curTok
+        if(this.curTok == null){
+            nextNonSpace(); 
+        }
         JavaToken tok = curTok;
         String fToken = "";
         while(cont)
@@ -234,7 +238,18 @@ public class Parser {
 		//expect("open_bracket_lt", true);
         
         try{
-            program.addChild(blockStatements());
+            ArrayList<String> find = new ArrayList<String>();
+            find.add("EOF");
+            find.add("semi_colon_lt");
+            find.add("class_kw");
+            String fToken = lookAheadToFind(find);
+            if(fToken == "class_kw")
+            {
+                notImplemented("typeDeclarations");
+            }else{
+                this.noClass = true;
+                program.addChild(blockStatements());
+            }
             if (debug) {
                 System.out.println("**FINISHED PARSE**");
                 System.out.println("Current token: " + curTok.tokenName() + "Current line" + curTok.getLine());
@@ -276,10 +291,10 @@ public class Parser {
 	{
 		enterNT("blockStatements");
         ASTNode blockStmnts = new ASTNode("block statements", null);
-        //to handle Java code without {}. Python doesn't need class info so we don't need to require it
-        if(this.curTok == null){
-            nextNonSpace();
-        }
+//        //to handle Java code without {}. Python doesn't need class info so we don't need to require it
+//        if(this.curTok == null){
+//            nextNonSpace();
+//        }
         while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 1026 = case_kw, 1007 = default_kw 
         {
             // error msg if reach EOF while parsing
