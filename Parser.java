@@ -13,6 +13,7 @@ public class Parser {
 
     private boolean debug = true;
     private boolean printTree = true;
+    private String errorMsg = null;
     
     Parser()
     {
@@ -25,6 +26,10 @@ public class Parser {
 		
 	}
 	
+    String getErrorMsg()
+    {
+        return this.errorMsg;
+    }
     String nextToken() throws IOException, Exception
     {
         if (buffer.size() > 0)
@@ -193,16 +198,21 @@ public class Parser {
         return foundTok;
     }
     
-    void errorMsg(String expToken, int line, int pos)
+    void errorMsg(String expToken, int line, int pos) throws Exception
     {
-        System.out.println("Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral());
-        System.exit(0);
+//        System.out.println("Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral());
+        
+        errorMsg = "Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral();
+        throw new Exception("Syntax error");
+        //System.exit(0);
     }
     //
-    void customErrorMsg(String msg, int line, int pos)
+    void customErrorMsg(String msg, int line, int pos) throws Exception
     {
-        System.out.println("Error (line " + line + " position " + pos + ")" + msg);
-        System.exit(0);
+        //System.out.println("Error (line " + line + " position " + pos + ")" + msg);
+        errorMsg = "Error (line " + line + " position " + pos + ")" + msg;
+        throw new Exception("Syntax error");
+        //System.exit(0);
     }
 
     boolean isLiteral(String token)
@@ -222,14 +232,21 @@ public class Parser {
         ASTNode program = new ASTNode("program", null);
         // TODO: Replace with call to typeDeclarations() when ready
 		//expect("open_bracket_lt", true);
-        program.addChild(blockStatements());
-
-        if (debug) {
-            System.out.println("**FINISHED PARSE**");
-            System.out.println("Current token: " + curTok.tokenName() + "Current line" + curTok.getLine());
+        
+        try{
+            program.addChild(blockStatements());
+            if (debug) {
+                System.out.println("**FINISHED PARSE**");
+                System.out.println("Current token: " + curTok.tokenName() + "Current line" + curTok.getLine());
+            }
+            if (printTree) printTree(program);
+        }catch(Exception e)
+        {
+            if(errorMsg == null){
+                errorMsg = "A system error has occured";
+                if(debug) e.printStackTrace();
+            }
         }
-
-        if (printTree) printTree(program);
         return program;
 	}
 	
@@ -915,7 +932,7 @@ public class Parser {
     //  - literal
     // unary exp
     //  - "binary operators"
-    int binaryOrUnary(String lastNode)
+    int binaryOrUnary(String lastNode) throws Exception
     {
         
         int retVal = 0;

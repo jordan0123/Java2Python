@@ -26,6 +26,10 @@ public class ParserTest {
         Parser p = new Parser();
         p.setLexer(l);
         p.parse();
+        if(p.getErrorMsg() != null)
+        {
+            System.out.println(p.getErrorMsg());
+        }
 //        String pStr = "".format("\n%-15s%-17s%-15s%-10s%-10s\n", "Lexeme", "Token", "Token Code", "Line", "Position");
 //        System.out.print(pStr);
 //        bw.write(pStr);
