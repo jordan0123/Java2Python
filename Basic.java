@@ -24,7 +24,7 @@
     {
      j = 4;
      h = 3;
-    }else if(i < 3)
+    }else if(--i < 3)
     {
         j = 5;
     }else
@@ -33,7 +33,7 @@
         if(j == 6)
         {
             k = 8;
-        }else if(j==7)
+        }else if(j++ == 7)
         {
             k = 9;
         }else
@@ -55,6 +55,7 @@ diameter = 3.0;
 unit = "metric";
 circle.x = radius(diameter, unit);
 i *= 3;
+i++;
 System.out.println("Part A" + "Part B");
 System.out.print("One" + "Two");
 

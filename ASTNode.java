@@ -114,6 +114,12 @@ class ASTNode {
     String getValue(){
         return this.value;
     }
+
+    // rebuilds tree underneath node to aide the translator
+    // with more complex structures (nfix operators in control conditions)
+    ASTNode rebuild() {
+        return this;
+    }
     
     void print(){
         for(int i = 0; i < this.depth; i++ ){

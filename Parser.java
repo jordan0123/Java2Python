@@ -1397,6 +1397,35 @@ public class Parser {
         exitNT("whileStatement");
         return whileStmnt;
     }
+
+    ASTNode elseStatement() throws Exception
+    {
+        enterNT("elseStatement");
+        expect("else_kw", false);
+        ASTNode elseStmnt = null;
+        boolean elseFound = false;
+        nextNonSpace();
+
+        if(curTok.tokenName() == "if_kw")
+        {
+            elseStmnt = new ASTNode("else if statement", null);
+            elseStmnt.addChild(ifHeaders());
+        } else {
+            elseStmnt = new ASTNode("else statement", null);
+            elseFound = true;
+        }
+
+        elseStmnt.addChild(statement());
+
+        if (curTok.tokenName() == "else_kw") {
+            if (!elseFound) {
+                elseStmnt.addChild(elseStatement());
+            } else customErrorMsg("Else without if", curTok.getLine(), curTok.getPos());
+        }
+
+        exitNT("elseStatement");
+        return elseStmnt;
+    }
     
     ASTNode ifStatement() throws Exception
     {
@@ -1405,28 +1434,33 @@ public class Parser {
         ASTNode ifStmnt = new ASTNode("if statement", null);
         ifStmnt.addChild(ifHeaders());
         ifStmnt.addChild(statement());
-        boolean else_found = false; //keeps track if else has appeared
-        while(curTok.tokenName() == "else_kw")
-        {
-            if(else_found)
-            {
-                customErrorMsg("Else without if", curTok.getLine(), curTok.getPos());
-            }
-            nextNonSpace();
-            if(curTok.tokenName() == "if_kw")
-            {
-                ASTNode elif = new ASTNode("else if statement", null);
-                elif.addChild(ifHeaders());
-                elif.addChild(statement());
-                ifStmnt.addChild(elif);
-            }
-            else{
-                ASTNode els = new ASTNode("else statement", null);
-                els.addChild(statement());
-                ifStmnt.addChild(els);
-                else_found = true; // no more else ifs or else permitted
-            }
-        }
+
+        // boolean else_found = false; //keeps track if else has appeared
+        //
+        // while(curTok.tokenName() == "else_kw")
+        // {
+        //     if(else_found)
+        //     {
+        //         customErrorMsg("Else without if", curTok.getLine(), curTok.getPos());
+        //     }
+        //     nextNonSpace();
+        //     if(curTok.tokenName() == "if_kw")
+        //     {
+        //         ASTNode elif = new ASTNode("else if statement", null);
+        //         elif.addChild(ifHeaders());
+        //         elif.addChild(statement());
+        //         ifStmnt.addChild(elif);
+        //     }
+        //     else{
+        //         ASTNode els = new ASTNode("else statement", null);
+        //         els.addChild(statement());
+        //         ifStmnt.addChild(els);
+        //         else_found = true; // no more else ifs or else permitted
+        //     }
+        // }
+
+        if (curTok.tokenName() == "else_kw") ifStmnt.addChild(elseStatement());
+
         exitNT("ifStatement");
         return ifStmnt;
     }
