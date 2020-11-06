@@ -124,7 +124,7 @@ class LexScanner{
         tokType.put(" ", new JavaToken(" ", "space_lt", 3009, true));
         tokType.put("\"", new JavaToken("\"", "double_quote_lt", 3010, true));
         tokType.put("'", new JavaToken("'", "single_quote_lt", 3011, true));
-        tokType.put("/", new JavaToken("/", "backslash", 3013, true));
+        //tokType.put("/", new JavaToken("/", "forward_slash", 3013, true));
         // For reference but not stored in this data structure
         // id, "identifier:3001"
         // integer, "integer_lt:3002"
@@ -145,7 +145,9 @@ class LexScanner{
                 }else if(lexeme.equals("\"") || lexeme.equals("'")){
                     handleString(lexeme);
                 }else if(lexeme.equals("/")){
-                    handleComment(lexeme);
+                    try {
+                        handleComment(lexeme);
+                    } catch (Exception e) {}
                 }else{
                     advance(lexeme);
                 }

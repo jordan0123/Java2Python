@@ -90,6 +90,11 @@ public class Translator {
 
         while (nodeStack.size() > 0) {
             switch(nodeStack.peek().getType()) {
+                case "block statement":
+                translate(nodeStack.pop().getChildren().get(0));
+                if (pyBuilder.getLine() != "") pyBuilder.newLine();
+                break;
+
                 case "local variable declaration":
                 children = nodeStack.pop().getChildren();
                 translate(children.get(1));
@@ -102,11 +107,29 @@ public class Translator {
                 children = nodeStack.pop().getChildren();
 
                 if (children.size() > 2){
-                    pyBuilder.append(children.get(0).getValue() + " = ");
+                    translate(children.get(0));
+                    pyBuilder.append(" ");
+                    pyBuilder.append(children.get(1).getValue() + " ");
                     translate(children.get(2));
                     pyBuilder.newLine();
+                } else if (children.get(0).getType() == "array access") {
+                    translate(children.get(0));
                 }
 
+                break;
+
+                case "array creation expression":
+                children = nodeStack.pop().getChildren();
+                pyBuilder.append("[None] * ");
+                translate(children.get(1));
+                break;
+
+                case "array access":
+                children = nodeStack.pop().getChildren();
+                translate(children.get(0));
+                pyBuilder.append("[");
+                translate(children.get(1));
+                pyBuilder.append("]");
                 break;
 
                 case "parenthesized expression":
@@ -134,14 +157,52 @@ public class Translator {
 
                 break;
 
+                case "method invocation":
+                children = nodeStack.pop().getChildren();
+                String methodName = children.get(0).getValue();
+                translate(children.get(0));
+                pyBuilder.append("(");
+                translate(children.get(1));
+
+                System.out.println("[" + methodName + "]");
+                if (methodName.equals("System.out.print")) {
+                    pyBuilder.append(", end=\"\"");
+                }
+
+                pyBuilder.append(")");
+                break;
+
+                case "argument list":
+                children = nodeStack.pop().getChildren();
+
+                for (ASTNode node : children) {
+                    translate(node);
+                    pyBuilder.append(", ");
+                }
+
+                pyBuilder.backspace(2);
+                break;
+
+                case "array initializer":
+                children = nodeStack.pop().getChildren();
+                pyBuilder.append("[");
+
+                for (ASTNode child : children) {
+                    translate(child);
+                    pyBuilder.append(", ");
+                }
+
+                pyBuilder.backspace(2);
+                pyBuilder.append("]");
+                break;
+
                 case "while statement":
                 children = nodeStack.pop().getChildren();
-                pyBuilder.clearCurrent();
 
                 pyBuilder.append("while ");
                 translate(children.get(0));
                 pyBuilder.append(":");
-                pyBuilder.addCurrent();
+                pyBuilder.newLine();
 
                 pyBuilder.increaseIndent();
                 translate(children.get(1));
@@ -150,7 +211,6 @@ public class Translator {
 
                 case "if statement":
                 children = nodeStack.pop().getChildren();
-                pyBuilder.clearCurrent();
 
                 pyBuilder.append("if ");
                 translate(children.get(0));
@@ -181,10 +241,7 @@ public class Translator {
                 translate(children.get(1));
                 pyBuilder.decreaseIndent();
 
-                if (children.size() > 2) {
-                    translate(children.get(2));
-                }
-
+                if (children.size() > 2) translate(children.get(2));
                 break;
                 
                 case "else statement":
@@ -199,10 +256,9 @@ public class Translator {
 
                 case "do statement":
                 children = nodeStack.pop().getChildren();
-                pyBuilder.clearCurrent();
 
                 pyBuilder.append("while True:");
-                pyBuilder.addCurrent();
+                pyBuilder.newLine();
 
                 pyBuilder.increaseIndent();
                 translate(children.get(0));
@@ -210,6 +266,36 @@ public class Translator {
                 translate(children.get(1));
                 pyBuilder.append(": break");
                 pyBuilder.addLine();
+                pyBuilder.decreaseIndent();
+                break;
+
+                case "foreach statement":
+                children = nodeStack.pop().getChildren();
+                pyBuilder.append("for ");
+                translate(children.get(0));
+                pyBuilder.append(" in ");
+                translate(children.get(1));
+                pyBuilder.append(":");
+                pyBuilder.newLine();
+                pyBuilder.increaseIndent();
+                translate(children.get(2));
+                pyBuilder.decreaseIndent();
+                break;
+
+                case "for statement":
+                // it would be nice to use python for-statements eventually,
+                // though this is much simpler
+                children = nodeStack.pop().getChildren();
+                translate(children.get(0));
+                if (pyBuilder.getLine() != "") pyBuilder.newLine();
+                pyBuilder.append("while ");
+                translate(children.get(1));
+                pyBuilder.append(":");
+                pyBuilder.newLine();
+                pyBuilder.increaseIndent();
+                translate(children.get(2));
+                pyBuilder.newLine();
+                translate(children.get(3));
                 pyBuilder.decreaseIndent();
                 break;
 

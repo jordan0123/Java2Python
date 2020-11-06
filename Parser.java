@@ -778,18 +778,29 @@ public class Parser {
                         break;
                     case "++_op":
                     case "--_op":
-                        if(cndExpr.childCount() > 0){
-                            cndExpr.addChild(postfixExpressionOp());
-                            validExp=true;
+                        // if(cndExpr.childCount() > 0){
+                        //     cndExpr.addChild(postfixExpressionOp());
+                        //     validExp=true;
+                        //     lastPart = "operand";
+                        // }else{
+                        //     cndExpr.addChild(prefixExpressionOp());
+                        //     validExp=false;
+                        //     lastPart = "operator";
+                        // }
+                        
+                        if (lookAhead(1).tokenName() == "identifier") {
+                            cndExpr.addChild(prefixExpression(curTok.tokenName()));
+                            validExp = true;
                             lastPart = "operand";
-                        }else{
-                            cndExpr.addChild(prefixExpressionOp());
-                            validExp=false;
+                        } else {
+                            // operator is not paired with an identifier, which is invalid
+                            validExp = false;
                             lastPart = "operator";
                         }
+
                         break;
                     case "*_op":
-                    case "/-op":
+                    case "/_op":
                     case "%_op":
                     case ">_op":
                     case "<_op":
@@ -823,6 +834,15 @@ public class Parser {
                         }
                         endExp = true;
                         break;
+                    
+                    case "identifier":
+                    if (lookAhead(1).tokenName() == "++_op" || lookAhead(1).tokenName() == "--_op") {
+                        cndExpr.addChild(postfixExpression(lookAhead(1).tokenName()));
+                        lastPart = "operand";
+                        validExp=true;
+                        break;
+                    }
+
                     default:
                         //Some primary (field access, array access, method, literal, etc)
                         // can't have two operands in a row
@@ -921,7 +941,7 @@ public class Parser {
         binOps.put("+_op", "additive expression");
         binOps.put("-_op", "additive expression");
         binOps.put("*_op", "multiplicative expression");
-        binOps.put("/-op", "multiplicative expression");
+        binOps.put("/_op", "multiplicative expression");
         binOps.put("%_op", "multiplicative expression");
         binOps.put(">_op", "relational expression");
         binOps.put("<_op", "relational expression");
@@ -1094,7 +1114,9 @@ public class Parser {
     {
         enterNT("postfixExpression");
         ASTNode postfix = new ASTNode("postfix expression",null);
-        postfix.addChild(conditionalExpression(operator));
+        expect("identifier", false);
+        postfix.addChild(new ASTNode("identifier", curTok.getLiteral()));
+        nextNonSpace();
         expect(operator, false);
         postfix.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
         nextNonSpace(); //move past operator
@@ -1120,7 +1142,9 @@ public class Parser {
         expect(operator, false);
         prefix.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
         nextNonSpace(); // advance past operator
-        prefix.addChild(conditionalExpression("ONE"));
+        expect("identifier", false);
+        prefix.addChild(new ASTNode("identifier", curTok.getLiteral()));
+        nextNonSpace();
         exitNT("prefixExpression");
         return prefix;
     }
@@ -1479,38 +1503,61 @@ public class Parser {
     {
         enterNT("forStatement");
         expect("for_kw", false);
-        ASTNode forStmnt = new ASTNode("for statement", null);
+        ASTNode forStmnt = null;
         expect("(_op", true);
         nextNonSpace(); //move past (
-        if(curTok.tokenName() == "semi_colon_lt")
-        {
-            forStmnt.addChild(new ASTNode("for init", null));
-            nextNonSpace(); //move past ';'
+
+        // **BEGIN checking for colon token, which will determine whether
+        //         loop is a foreach loop
+        // NOTE: very hacky, will likely break under certain circumstances
+        boolean isForEach = false;
+        boolean identFound = false;
+
+        if (isType()) {
+            isForEach = lookAhead(1).tokenName() == "identifier"
+                        && lookAhead(2).tokenName() == "colon_lt";
         }
-        else
-        {
-            forStmnt.addChild(forInit());
-        }
-        if(curTok.tokenName() == "semi_colon_lt")
-        {
-            forStmnt.addChild(new ASTNode("expression", null));
-            nextNonSpace(); //move past ';'
-        }
-        else
-        {
+        // END check for colon token**
+
+        if (isForEach) {
+            forStmnt = new ASTNode("foreach statement", null);
+            nextNonSpace(); // skip type
+            forStmnt.addChild(primary());
+            nextNonSpace(); // skip colon
             forStmnt.addChild(expression());
-            expect("semi_colon_lt", false);
-            nextNonSpace(); // move past ;
+        } else {
+            forStmnt = new ASTNode("for statement", null);
+            if(curTok.tokenName() == "semi_colon_lt")
+            {
+                forStmnt.addChild(new ASTNode("for init", null));
+                nextNonSpace(); //move past ';'
+            }
+            else
+            {
+                forStmnt.addChild(forInit());
+            }
+            if(curTok.tokenName() == "semi_colon_lt")
+            {
+                forStmnt.addChild(new ASTNode("expression", null));
+                nextNonSpace(); //move past ';'
+            }
+            else
+            {
+                forStmnt.addChild(expression());
+                expect("semi_colon_lt", false);
+                nextNonSpace(); // move past ;
+            }
+            if(curTok.tokenName() == "semi_colon_lt")
+            {
+                forStmnt.addChild(new ASTNode("for update", null));
+                nextNonSpace(); //move past ';'
+            }
+            else
+            {
+                forStmnt.addChild(forUpdate());
+            }
         }
-        if(curTok.tokenName() == "semi_colon_lt")
-        {
-            forStmnt.addChild(new ASTNode("for update", null));
-            nextNonSpace(); //move past ';'
-        }
-        else
-        {
-            forStmnt.addChild(forUpdate());
-        }
+
         expect(")_op", false);
         expect("open_bracket_lt", true);
         forStmnt.addChild(statement());

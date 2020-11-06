@@ -128,8 +128,12 @@ public class PythonBuilder {
         subLine(cursor, beg, end);
     }
 
+    void backspace(int bspaces) {
+        subLine(0, -1 * bspaces);
+    }
+
     void backspace() {
-        subLine(0, -1);
+        backspace(1);
     }
 
     void addLines(ArrayList<String> lines) {
@@ -145,6 +149,10 @@ public class PythonBuilder {
     // add lines of another PythonBuilder object
     void addLines(PythonBuilder pBuilder) {
         addLines(pBuilder, false);
+    }
+
+    String getLine() {
+        return sourceList.get(cursor);
     }
 
     ArrayList<String> getLines() {

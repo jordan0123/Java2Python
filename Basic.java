@@ -1,7 +1,7 @@
     int str = 1;
     int j = 2;
     j = 1;
-    j = 3 + (2 - 1);
+    j = 3 / (2 - 1);
     j = i - 3 * 1;
     boolean h = i > j;
     boolean x = k + j;
@@ -9,7 +9,7 @@
     int k;
     int l = j - 3 * 2;
 	
-	h = !h;
+    h = !h;
 	
     while(i > 2)
     {
@@ -45,18 +45,27 @@
         k = k - 1;
     }while(k > 0);
 
-    for(int k = 0; k < 10; k++){
+    for(int k = 0; k < 10; ++k){
         j = 5;
     }
+
 i = 3 + -j;
 int [] y = new int[3];
 y[2] = 2;
 diameter = 3.0;
 unit = "metric";
-circle.x = radius(diameter, unit);
+circle.x = radius(diameter, math.PI).unit("km");
 i *= 3;
+++i;
 i++;
+
 System.out.println("Part A" + "Part B");
 System.out.print("One" + "Two");
 
 int [] intArr = {1,2,3};
+
+for (int i : intArr) {
+    i++;
+}
+
+a = n || b && a || c && (++a == 2 || ++b == a++) && d;

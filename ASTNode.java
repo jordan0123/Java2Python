@@ -118,6 +118,15 @@ class ASTNode {
     // rebuilds tree underneath node to aide the translator
     // with more complex structures (nfix operators in control conditions)
     ASTNode rebuild() {
+        ASTNode child = null;
+        switch (this.type) {
+            case "else if statement":
+            child = children.get(0);
+            break;
+
+            default:
+        }
+
         return this;
     }
     

@@ -17,8 +17,10 @@ public class RequestHandler {
         p.setPrintTree(false);
         t.setDebug(true);
         t.setCrashOnError(false);
+
         // Translate Java Code
-        String response = t.translate(p.parse()).getSource();
+        t.translate(p.parse());
+
         // Load python code to return map
         Map<String, String> retMap = new HashMap<String,String>();
         retMap.put("statusCode", "200");
