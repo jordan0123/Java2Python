@@ -17,11 +17,13 @@ public class Parser {
     private boolean printTree = true;
     private String errorMsg = null;
     private ArrayList<Comment> comments;
+    private ArrayList<String> references;
     
     Parser()
     {
         this.buffer = new ArrayList<JavaToken>();
         this.comments = new ArrayList<Comment>();
+        this.references = new ArrayList<String>();
         initModifiers();
     }
 	
@@ -430,22 +432,25 @@ public class Parser {
 	}
 	
 	// returns if current token is a type i.e. int, short, double keywords in java
-    // TODO: Handle <reference type>
 	boolean isType() throws Exception
 	{
-		switch (curTok.tokenCode())
-		{
-            case 1011: // boolean_kw
-            case 1017: // double_kw
-            case 1033: // int_kw
-            case 1034: // short_kw
-            case 1036: // char_kw
-            case 1043: // long_kw
-            case 1047: // float_kw
-                return true;
-		  default:  
-            return false;
-		}
+        if(references.contains(curTok.getLiteral())){
+            return true;
+        }else{
+            switch (curTok.tokenCode())
+            {
+                case 1011: // boolean_kw
+                case 1017: // double_kw
+                case 1033: // int_kw
+                case 1034: // short_kw
+                case 1036: // char_kw
+                case 1043: // long_kw
+                case 1047: // float_kw
+                    return true;
+              default:
+                return false;
+            }
+        }
 	}
     // stores list of valid assignment Operators
     // TODO: Generalize to provide various valid lists by key example "assignmentExpressions" as param would retrieve assOps list
@@ -455,28 +460,33 @@ public class Parser {
         return assOps;
     }
     
-	// returns a node of <primitive type> or <array type>
-    // TODO: Handle <reference type>
+	// returns a node of <primitive type> or <reference type> or <primative type array><reference type array>
     ASTNode type() throws Exception
     {
         enterNT("type");
-        if(!isType()) 
+        if(!isType() && !references.contains(curTok.getLiteral())) 
 		{
 			errorMsg("type", curTok.getLine(), curTok.getPos());
         }
-        ASTNode retVal;
-        JavaToken nextTok = lookAhead(1);
-        if(nextTok.tokenCode() == 2003) // open [
-        {
-            String typeLit = curTok.getLiteral(); // saves type info
-            nextNonSpace(); // advances to the [
-            expect("]", true); // advances again checking for ]
-            retVal = new ASTNode("array type",typeLit, curTok.getLine());
-        }
-        else{
-            retVal = new ASTNode("primitive type",curTok.getLiteral(), curTok.getLine());
+        ASTNode retVal = null;
+        String typeLit = curTok.getLiteral(); // saves type info
+        String ASTName = ""; // to save name of the node
+        if(references.contains(typeLit)){
+            ASTName = "reference type";
+        }else{
+            ASTName = "primative type";
         }
         nextNonSpace(); //advance past type
+        if(curTok.tokenCode() == 2003) // open [
+        {
+            expect("]", true); // advances again checking for ]
+            ASTName = ASTName + " array";
+            retVal = new ASTNode(ASTName,typeLit, curTok.getLine());
+            nextNonSpace(); //advance past ]
+        }
+        else{
+            retVal = new ASTNode(ASTName,typeLit, curTok.getLine());
+        }
         exitNT("type");
         return retVal;
     }
@@ -1639,6 +1649,11 @@ ASTNode forInit() throws Exception
         expect("class_kw", false);
         expect("identifier", true);
         classDec.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
+        if(references.contains(curTok.getLiteral()))
+        {
+            customErrorMsg(curTok.getLiteral() + " has already been declared", curTok.getLine(), curTok.getPos());
+        }
+        references.add(curTok.getLiteral());
         nextNonSpace(); // advance past identifier
         classDec.addChild(classBody());
         exitNT("classDeclaration");
