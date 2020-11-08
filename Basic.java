@@ -48,9 +48,9 @@
     for(int k = 0; k < 10; ++k){
         j = 5;
     }
-
+// whole line comment
 i = 3 + -j;
-int [] y = new int[3];
+int [] y = new int[3]; // end line comment
 y[2] = 2;
 diameter = 3.0;
 unit = "metric";

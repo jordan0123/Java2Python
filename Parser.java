@@ -16,10 +16,12 @@ public class Parser {
     private boolean debug = true;
     private boolean printTree = true;
     private String errorMsg = null;
+    private ArrayList<Comment> comments;
     
     Parser()
     {
         this.buffer = new ArrayList<JavaToken>();
+        this.comments = new ArrayList<Comment>();
         initModifiers();
     }
 	
@@ -33,6 +35,12 @@ public class Parser {
     {
         return this.errorMsg;
     }
+    
+    ArrayList<Comment> getComments()
+    {
+        return comments;
+    }
+    
     String nextToken() throws IOException, Exception
     {
         if (buffer.size() > 0)
@@ -45,8 +53,9 @@ public class Parser {
         else
         {
             lexer.nextToken();
-            if(this.curTok != null && curTok.tokenCode() != 3009)
+            if(this.curTok != null && curTok.tokenCode() != 3009 && curTok.tokenCode() != 3014)
             {
+                // if not a space store current token as last token before updating
                 this.lastTok = this.curTok;
             }
             this.curTok = lexer.getJavaToken();
@@ -60,7 +69,12 @@ public class Parser {
 		nextToken();
 		while (curTok.tokenCode() == 3009 || curTok.tokenCode() == 3014)
 		{
-			nextToken();
+            if(curTok.tokenCode() == 3014)
+            {
+                System.out.println("$$$$$$$Comment found in nonSpace");
+                comments.add(new Comment(curTok.getLiteral(), curTok.getLine()));
+            }
+            nextToken();
 		}
         if (debug) System.out.println("Current token " + curTok.tokenName());
 		return curTok.tokenName();
@@ -70,8 +84,15 @@ public class Parser {
     {
         lexer.nextToken();
         JavaToken retVal = lexer.getJavaToken();
-        while(retVal.tokenCode() == 3009 || retVal.tokenCode() == 3014)
+        while(retVal.tokenCode() == 3009 || curTok.tokenCode() == 3014)
         {
+            if(retVal.tokenCode() == 3014)
+            {
+                System.out.println("$$$$$$$$Comment found in peekToken");
+                comments.add(new Comment(retVal.getLiteral(), retVal.getLine()));
+                lexer.nextToken();
+                retVal = lexer.getJavaToken();
+            }
             lexer.nextToken();
             retVal = lexer.getJavaToken();
         }
