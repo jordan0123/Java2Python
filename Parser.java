@@ -244,18 +244,14 @@ public class Parser {
         return lits.contains(token);
     }
     
-    /* TODO: Currently set up to parse a single block { } of java statements
-     * Will eventually go to typeDeclarations() when <block> works and assume <package declaration> and <import declarations> are unnecessary
-     *
+    /* Handles both a full java program and as well as a code block without class
+     * Goes to typeDeclarations() when class_kw is found before ; else uses <block>
      *<compilation unit> ::= <package declaration>? <import declarations>? <type declarations>?
-     */    
+     */
 	ASTNode parse() throws Exception
 	{
 		if (debug) System.out.println("**BEGIN PARSE**");
         ASTNode program = new ASTNode("program",null, 1);
-        // TODO: Replace with call to typeDeclarations() when ready
-		//expect("open_bracket_lt", true);
-        
         try{
             ArrayList<String> find = new ArrayList<String>();
             find.add("EOF");
@@ -713,24 +709,46 @@ public class Parser {
 	 */
 	ASTNode assignmentExpression() throws Exception
 	{
-		//look ahead to see if next token is an <assignment operator>
-        //TODO: Assumes <left hand side> is one token. Won't work for field access or array access now but could extend to handle by ignoring [ and ] in lookahead
+		//look ahead until it finds a token that indicates either an <assignment operator> or <conditional expression>
         
         enterNT("assignmentExpression");
         ASTNode assExp = new ASTNode("assignment expression",null, curTok.getLine());
-        JavaToken nextTok = lookAhead(1);
+        // these indicated assignment expression
         String[] assOps = getAssignmentOps();
-
-        if(Arrays.asList(assOps).contains(nextTok.tokenName()))
+        ArrayList<String> find = new ArrayList<String>(Arrays.asList(assOps));
+        // these indicate conditional expression
+        find.add("+_op");
+        find.add("-_op");
+        find.add("~_op");
+        find.add("!_op");
+        find.add("||_op");
+        find.add("&&_op");
+        find.add("^_op");
+        find.add("&_op");
+        find.add("==_op");
+        find.add("<_op");
+        find.add(">_op");
+        find.add(">=_op");
+        find.add("<=_op");
+        find.add("instanceof_kw");
+        find.add("<<_op");
+        find.add(">>_op");
+        find.add("*_op");
+        find.add("/_op");
+        find.add("%_op");
+        find.add("++_op");
+        find.add("--_op");
+        find.add("EOF");
+        find.add("semi_colon_lt");
+        String fToken = lookAheadToFind(find);
+        if(debug) System.out.println("The fToken is " + fToken);
+        if(Arrays.asList(assOps).contains(fToken))
         {
-            if (debug) System.out.println("The next token is " + nextTok.tokenName());
             assExp.addChild(assignment());
-        }
-        else
+        }else
         {
             assExp.addChild(conditionalExpression(null));
         }
-
         exitNT("assignmentExpression");
         return assExp;
 	}
@@ -1192,13 +1210,12 @@ public class Parser {
     }
     
     // new <type> <dim exprs> <dims>?
-    // TODO: Handle class or interface type
     ASTNode arrayCreationExpression() throws Exception
     {
         enterNT("arrayCreationExpression");
         ASTNode arrCreate = new ASTNode("array creation expression",null, curTok.getLine());
         nextNonSpace();
-        if(!isType()) 
+        if(!isType() && !references.contains(curTok.getLiteral()))
 		{
 			errorMsg("type", curTok.getLine(), curTok.getPos());
         }
