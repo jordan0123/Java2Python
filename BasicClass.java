@@ -9,6 +9,11 @@ int noModifier;
         System.out.println("This is k " + k);
     }
     
+    public BasicClass(){
+        super();
+        System.out.println("Initialized!");
+    }
+    
     public static void main(String[] args){
         System.out.println('Hello, World!');
     }

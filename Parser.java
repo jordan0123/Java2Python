@@ -1684,20 +1684,21 @@ ASTNode forInit() throws Exception
         return classDec;
     }
     
-    
     void initModifiers(){
         modifiers = new HashMap<String,String[]>();
-        String[] all = {"class","field","method"};
+        String[] all = {"class","field","method", "constructor"};
+        String[] allButConstr = {"class", "field", "method"};
+        String[] allButClass = {"field", "method", "constructor"};
         String[] fieldAndMethod = {"field","method"};
         String[] classAndMethod = {"class","method"};
         String[] field = {"field"};
         String[] method = {"method"};
+        
         modifiers.put("public_kw", all);
-        modifiers.put("final_kw", all);
-        modifiers.put("protected_kw", fieldAndMethod);
-        modifiers.put("private_kw", fieldAndMethod);
+        modifiers.put("final_kw", allButConstr);
+        modifiers.put("protected_kw", allButClass);
+        modifiers.put("private_kw", allButClass);
         modifiers.put("static_kw", fieldAndMethod);
-        modifiers.put("protected_kw", fieldAndMethod);
         modifiers.put("abstract_kw", classAndMethod);
         modifiers.put("transient_kw", field);
         modifiers.put("volatile_kw", field);
@@ -1770,10 +1771,123 @@ ASTNode forInit() throws Exception
             {
                 errorMsg("}",curTok.getLine(), curTok.getPos());
             }
-            clsBodyDecs.addChild(classMemberDeclaration());
+            //check if constructor or method/field declaration
+            if(isConstructor()){
+                clsBodyDecs.addChild(constructorDeclaration());
+            }else{
+                clsBodyDecs.addChild(classMemberDeclaration());
+            }
         }
         exitNT("classBodyDeclarations");
         return clsBodyDecs;
+    }
+    //Looks ahead to see if the current statement is a constructor declaration or a method/field declartion
+    boolean isConstructor() throws Exception
+    {
+        JavaToken tok = curTok;
+        int n = 0;
+        //if modifier but not constructor mod then not constructor 
+        if(isModifier(null)){
+            if(!isModifier("constructor")){
+                return false;
+            }
+            else{
+                tok = lookAhead(++n);
+            }
+        }
+        // if not a class type then it can't be a contructor declaration
+        if(!references.contains(tok.getLiteral())){
+            return false;
+        }else{
+            tok = lookAhead(++n);
+        }
+        // need to have an ( here to fully indicate a constructor vs a class result type for a method
+        if(tok.tokenName() != "(_op"){
+            return false;
+        }
+        return true;
+    }
+    
+    ASTNode constructorDeclaration() throws Exception
+    {
+        enterNT("constructorDeclaration");
+        ASTNode conDec = new ASTNode("constructor declaration", null, curTok.getLine());
+        if(isModifier(null))
+        {
+            conDec.addChild(handleModifiers("method"));
+        }else{
+            conDec.addChild(new ASTNode("modifiers",null, curTok.getLine()));
+        }
+        conDec.addChild(constructorDeclarator());
+        // TODO handle throws
+        conDec.addChild(constructorBody());
+        exitNT("constructorDeclaration");
+        return conDec;
+    }
+    
+    ASTNode constructorDeclarator() throws Exception
+    {
+        enterNT("constructorDeclarator");
+        ASTNode conDec = new ASTNode("constructor declarator", null, curTok.getLine());
+        if(!references.contains(curTok.getLiteral())){
+			errorMsg("reference type", curTok.getLine(), curTok.getPos());
+        }
+        conDec.addChild(new ASTNode("identifier", curTok.getLiteral(), curTok.getLine()));
+        expect("(_op", true);
+        nextNonSpace(); // move past (
+        if(curTok.tokenName() == ")_op")
+        {
+            conDec.addChild(new ASTNode("formal parameter list",null, curTok.getLine()));
+        }else
+        {
+            conDec.addChild(formalParameterList());
+        }
+        expect(")_op", false);
+        nextNonSpace(); // advance past )
+        exitNT("constructorDeclarator");
+        return conDec;
+    }
+    
+    ASTNode constructorBody() throws Exception
+    {
+        enterNT("constructorBody");
+        ASTNode conBody = new ASTNode("constructor body", null, curTok.getLine());
+        expect("open_bracket_lt", false);
+        String s = nextNonSpace();
+        // if not } then contains explicit constructor statements or block statements
+        if(s != "close_bracket_lt"){
+            if(s == "super_kw" || s == "this_kw"){
+                conBody.addChild(explicitConstructorInvocation());
+            }
+            conBody.addChild(blockStatements());
+        } 
+        // checks that current token is a }
+        expect("close_bracket_lt", false);
+        nextNonSpace(); //advance past the close bracket
+        exitNT("constructorBody");
+        return conBody;
+    }
+    
+    ASTNode explicitConstructorInvocation() throws Exception
+    {
+        enterNT("explicitConstructorInvocation");
+        ASTNode expConInv = new ASTNode("explicit constructor invocation", null, curTok.getLine());
+        // add super or this
+        expConInv.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
+        expect("(_op", true); 
+        nextNonSpace(); // move past (
+        if(curTok.tokenName() == ")_op")
+        {
+            expConInv.addChild(new ASTNode("argument list",null, curTok.getLine()));
+        }else
+        {
+            expConInv.addChild(argumentList());
+        }
+        expect(")_op", false);
+        expect("semi_colon_lt", true);
+        nextNonSpace(); // advance past ;
+        exitNT("explicitConstructorInvocation");
+        return expConInv;
     }
     
     ASTNode classMemberDeclaration() throws Exception
