@@ -71,7 +71,6 @@ public class Parser {
 		{
             if(curTok.tokenCode() == 3014)
             {
-                if(debug) System.out.println("$$$$$$$Comment found in nonSpace");
                 comments.add(new Comment(curTok.getLiteral(), curTok.getLine()));
             }
             nextToken();
@@ -88,7 +87,6 @@ public class Parser {
         {
             if(retVal.tokenCode() == 3014)
             {
-                if(debug) System.out.println("$$$$$$$$Comment found in peekToken");
                 comments.add(new Comment(retVal.getLiteral(), retVal.getLine()));
                 lexer.nextToken();
                 retVal = lexer.getJavaToken();
