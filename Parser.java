@@ -207,19 +207,14 @@ public class Parser {
     
     void errorMsg(String expToken, int line, int pos) throws Exception
     {
-//        System.out.println("Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral());
-        
         errorMsg = "Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral();
         throw new Exception("Syntax error");
-        //System.exit(0);
     }
     //
     void customErrorMsg(String msg, int line, int pos) throws Exception
     {
-        //System.out.println("Error (line " + line + " position " + pos + ")" + msg);
         errorMsg = "Error (line " + line + " position " + pos + ")" + msg;
         throw new Exception("Syntax error");
-        //System.exit(0);
     }
 
     boolean isLiteral(String token)
@@ -248,7 +243,7 @@ public class Parser {
             String fToken = lookAheadToFind(find);
             if(fToken == "class_kw")
             {
-                notImplemented("typeDeclarations");
+                program.addChild(typeDeclarations());
             }else{
                 program.addChild(blockStatements());
             }
@@ -297,7 +292,7 @@ public class Parser {
 //        if(this.curTok == null){
 //            nextNonSpace();
 //        }
-        while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 1026 = case_kw, 1007 = default_kw 
+        while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 4001 = EOF 1026 = case_kw, 1007 = default_kw
         {
             // error msg if reach EOF while parsing
             if(curTok.tokenCode() == 4001) // EOF
@@ -1466,30 +1461,6 @@ public class Parser {
         ifStmnt.addChild(ifHeaders());
         ifStmnt.addChild(statement());
 
-        // boolean else_found = false; //keeps track if else has appeared
-        //
-        // while(curTok.tokenName() == "else_kw")
-        // {
-        //     if(else_found)
-        //     {
-        //         customErrorMsg("Else without if", curTok.getLine(), curTok.getPos());
-        //     }
-        //     nextNonSpace();
-        //     if(curTok.tokenName() == "if_kw")
-        //     {
-        //         ASTNode elif = new ASTNode("else if statement", null);
-        //         elif.addChild(ifHeaders());
-        //         elif.addChild(statement());
-        //         ifStmnt.addChild(elif);
-        //     }
-        //     else{
-        //         ASTNode els = new ASTNode("else statement", null);
-        //         els.addChild(statement());
-        //         ifStmnt.addChild(els);
-        //         else_found = true; // no more else ifs or else permitted
-        //     }
-        // }
-
         if (curTok.tokenName() == "else_kw") ifStmnt.addChild(elseStatement());
 
         exitNT("ifStatement");
@@ -1732,11 +1703,60 @@ ASTNode forInit() throws Exception
         return clsBody;
     }
     
-    ASTNode classBodyDeclarations(){
+    ASTNode classBodyDeclarations() throws Exception
+    {
         enterNT("classBodyDeclarations");
         ASTNode clsBodyDecs = new ASTNode("class body declarations", null);
+        while(curTok.tokenCode() != 3004 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 4001 = EOF 1026 = case_kw, 1007 = default_kw
+        {
+            // error msg if reach EOF while parsing
+            if(curTok.tokenCode() == 4001)
+            {
+                errorMsg("}",curTok.getLine(), curTok.getPos());
+            }
+            clsBodyDecs.addChild(classMemberDeclaration());
+        }
         exitNT("classBodyDeclarations");
         return clsBodyDecs;
+    }
+    
+    ASTNode classMemberDeclaration() throws Exception
+    {
+        enterNT("classMemberDeclaration");
+        ASTNode clsMemDec = null;
+        ArrayList<String> find = new ArrayList<String>();
+        find.add("EOF");
+        find.add("semi_colon_lt");
+        find.add("(_op");
+        String fToken = lookAheadToFind(find);
+        if(fToken == "(_op)"){
+            //clsMemDec = methodDeclaration();
+            notImplemented("methodDeclaration");
+        }else{
+            clsMemDec = fieldDeclaration();
+        }
+        exitNT("classMemeberDeclaration");
+        return clsMemDec;
+    }
+    
+    ASTNode fieldDeclaration() throws Exception
+    {
+        enterNT("fieldDeclaration");
+        ASTNode fieldDec = new ASTNode("field declaration", null);
+        if(isModifier(null))
+        {
+            fieldDec.addChild(handleModifiers("field"));
+        }
+		if(!isType()) 
+		{
+			errorMsg("type", curTok.getLine(), curTok.getPos());
+        }
+        fieldDec.addChild(type());
+        fieldDec.addChild(variableDeclarators());
+        expect("semi_colon_lt", false);
+        nextNonSpace(); //advance past ;
+		exitNT("fieldDeclaration");
+        return fieldDec;
     }
     
 	// print out the non-terminal being entered
