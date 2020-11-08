@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.io.FileWriter;
 import java.io.BufferedWriter;
+import java.util.ArrayList;
 
 public class ParserTest {
     public static void main(String[] args) throws Exception{
@@ -30,6 +31,12 @@ public class ParserTest {
         {
             System.out.println(p.getErrorMsg());
         }
+        ArrayList<Comment> comments = p.getComments();
+        
+        for(Comment c:comments){
+            System.out.println("Line: " + c.getLine() + " - " + c.getComment());
+        }
+        
 //        String pStr = "".format("\n%-15s%-17s%-15s%-10s%-10s\n", "Lexeme", "Token", "Token Code", "Line", "Position");
 //        System.out.print(pStr);
 //        bw.write(pStr);

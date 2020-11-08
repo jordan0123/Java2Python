@@ -78,6 +78,7 @@ class LexScanner{
         tokType.put("native", new JavaToken("native", "native_kw", 1048, true));
         tokType.put("super", new JavaToken("super", "super_kw", 1049, true));
         tokType.put("while", new JavaToken("while", "while_kw", 1050, true));
+        tokType.put("String", new JavaToken("String", "string_kw", 1051, true));
         // Operators
         tokType.put("(", new JavaToken("(", "(_op", 2001, false));
         tokType.put(")", new JavaToken(")", ")_op", 2002, false));
@@ -124,10 +125,12 @@ class LexScanner{
         tokType.put(" ", new JavaToken(" ", "space_lt", 3009, true));
         tokType.put("\"", new JavaToken("\"", "double_quote_lt", 3010, true));
         tokType.put("'", new JavaToken("'", "single_quote_lt", 3011, true));
+        tokType.put("null", new JavaToken("null", "null_lt", 3016, true));
         //tokType.put("/", new JavaToken("/", "forward_slash", 3013, true));
         // For reference but not stored in this data structure
         // id, "identifier:3001"
         // integer, "integer_lt:3002"
+        // decimal, "decimal_lt:3015
         // EOF: "EOF:4001"
         // DNE: "DNE:5001"
         return tokType;
@@ -268,7 +271,7 @@ class LexScanner{
                 this.curJavaToken = new JavaToken(lexeme, "integer_lt", 3002, true);
                 partial = false;
             }else if(lexeme.matches(decPat)){
-                this.curJavaToken = new JavaToken(lexeme, "decimal_lt", 3003, true);
+                this.curJavaToken = new JavaToken(lexeme, "decimal_lt", 3015, true);
                 partial = false;
             }else if(lexeme.matches(partDecPat)){
                 this.curJavaToken = new JavaToken(lexeme, "DNE", 5001);

@@ -16,10 +16,14 @@ public class Parser {
     private boolean debug = true;
     private boolean printTree = true;
     private String errorMsg = null;
+    private ArrayList<Comment> comments;
+    private ArrayList<String> references;
     
     Parser()
     {
         this.buffer = new ArrayList<JavaToken>();
+        this.comments = new ArrayList<Comment>();
+        this.references = new ArrayList<String>();
         initModifiers();
     }
 	
@@ -33,6 +37,12 @@ public class Parser {
     {
         return this.errorMsg;
     }
+    
+    ArrayList<Comment> getComments()
+    {
+        return comments;
+    }
+    
     String nextToken() throws IOException, Exception
     {
         if (buffer.size() > 0)
@@ -45,8 +55,9 @@ public class Parser {
         else
         {
             lexer.nextToken();
-            if(this.curTok != null && curTok.tokenCode() != 3009)
+            if(this.curTok != null && curTok.tokenCode() != 3009 && curTok.tokenCode() != 3014)
             {
+                // if not a space store current token as last token before updating
                 this.lastTok = this.curTok;
             }
             this.curTok = lexer.getJavaToken();
@@ -60,7 +71,11 @@ public class Parser {
 		nextToken();
 		while (curTok.tokenCode() == 3009 || curTok.tokenCode() == 3014)
 		{
-			nextToken();
+            if(curTok.tokenCode() == 3014)
+            {
+                comments.add(new Comment(curTok.getLiteral(), curTok.getLine()));
+            }
+            nextToken();
 		}
         if (debug) System.out.println("Current token " + curTok.tokenName());
 		return curTok.tokenName();
@@ -70,8 +85,14 @@ public class Parser {
     {
         lexer.nextToken();
         JavaToken retVal = lexer.getJavaToken();
-        while(retVal.tokenCode() == 3009 || retVal.tokenCode() == 3014)
+        while(retVal.tokenCode() == 3009 || curTok.tokenCode() == 3014)
         {
+            if(retVal.tokenCode() == 3014)
+            {
+                comments.add(new Comment(retVal.getLiteral(), retVal.getLine()));
+                lexer.nextToken();
+                retVal = lexer.getJavaToken();
+            }
             lexer.nextToken();
             retVal = lexer.getJavaToken();
         }
@@ -207,39 +228,30 @@ public class Parser {
     
     void errorMsg(String expToken, int line, int pos) throws Exception
     {
-//        System.out.println("Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral());
-        
         errorMsg = "Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral();
         throw new Exception("Syntax error");
-        //System.exit(0);
     }
     //
     void customErrorMsg(String msg, int line, int pos) throws Exception
     {
-        //System.out.println("Error (line " + line + " position " + pos + ")" + msg);
         errorMsg = "Error (line " + line + " position " + pos + ")" + msg;
         throw new Exception("Syntax error");
-        //System.exit(0);
     }
 
     boolean isLiteral(String token)
     {
-        ArrayList<String> lits = new ArrayList<String>(Arrays.asList("string_lt", "integer_lt","decimal_lt"));
+        ArrayList<String> lits = new ArrayList<String>(Arrays.asList("string_lt", "integer_lt","decimal_lt", "null_lt"));
         return lits.contains(token);
     }
     
-    /* TODO: Currently set up to parse a single block { } of java statements
-     * Will eventually go to typeDeclarations() when <block> works and assume <package declaration> and <import declarations> are unnecessary
-     *
+    /* Handles both a full java program and as well as a code block without class
+     * Goes to typeDeclarations() when class_kw is found before ; else uses <block>
      *<compilation unit> ::= <package declaration>? <import declarations>? <type declarations>?
-     */    
+     */
 	ASTNode parse() throws Exception
 	{
 		if (debug) System.out.println("**BEGIN PARSE**");
-        ASTNode program = new ASTNode("program", null);
-        // TODO: Replace with call to typeDeclarations() when ready
-		//expect("open_bracket_lt", true);
-        
+        ASTNode program = new ASTNode("program",null, 1);
         try{
             ArrayList<String> find = new ArrayList<String>();
             find.add("EOF");
@@ -248,7 +260,7 @@ public class Parser {
             String fToken = lookAheadToFind(find);
             if(fToken == "class_kw")
             {
-                notImplemented("typeDeclarations");
+                program.addChild(typeDeclarations());
             }else{
                 program.addChild(blockStatements());
             }
@@ -273,7 +285,7 @@ public class Parser {
 	ASTNode block() throws Exception
 	{
 		enterNT("block");
-        ASTNode block = new ASTNode("block", null);
+        ASTNode block = new ASTNode("block",null, curTok.getLine());
         String s = nextNonSpace();
         // if not } then contains block statements
         if(s != "close_bracket_lt"){
@@ -292,12 +304,12 @@ public class Parser {
 	ASTNode blockStatements() throws Exception
 	{
 		enterNT("blockStatements");
-        ASTNode blockStmnts = new ASTNode("block statements", null);
+        ASTNode blockStmnts = new ASTNode("block statements",null, curTok.getLine());
 //        //to handle Java code without {}. Python doesn't need class info so we don't need to require it
 //        if(this.curTok == null){
 //            nextNonSpace();
 //        }
-        while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 1026 = case_kw, 1007 = default_kw 
+        while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 4001 = EOF 1026 = case_kw, 1007 = default_kw
         {
             // error msg if reach EOF while parsing
             if(curTok.tokenCode() == 4001) // EOF
@@ -317,7 +329,7 @@ public class Parser {
 	ASTNode blockStatement() throws Exception
 	{
 		enterNT("blockStatement");
-        ASTNode blockStmnt = new ASTNode("block statement", null);
+        ASTNode blockStmnt = new ASTNode("block statement",null, curTok.getLine());
         //check if local variable declaration by checking if current token is a type else it's a statement
         if(isType())
         {
@@ -335,14 +347,14 @@ public class Parser {
     ASTNode statement() throws Exception
     {
         enterNT("statement");
-        ASTNode stmnt = new ASTNode("statement", null);
+        ASTNode stmnt = new ASTNode("statement",null, curTok.getLine());
         switch(curTok.tokenName())
         {
             case "open_bracket_lt": // {
                 stmnt.addChild(block());
                 break;
             case "semi_colon_lt": // ;
-                stmnt.addChild(new ASTNode("empty statement", null));
+                stmnt.addChild(new ASTNode("empty statement",null, curTok.getLine()));
                 break;
             case "if_kw":
                 stmnt.addChild(ifStatement());
@@ -391,7 +403,7 @@ public class Parser {
 	ASTNode localVariableDeclarationStatement() throws Exception
 	{
 		enterNT("localVariableDeclarationStatement");
-		ASTNode localVarDecStmnt = new ASTNode("local variable declaration statement", null); 
+		ASTNode localVarDecStmnt = new ASTNode("local variable declaration statement",null, curTok.getLine()); 
         localVarDecStmnt.addChild(localVariableDeclaration());
         expect("semi_colon_lt", false);
         nextNonSpace(); //advance past ';'
@@ -403,7 +415,7 @@ public class Parser {
 	ASTNode localVariableDeclaration() throws Exception
 	{
 		enterNT("localVariableDeclaration");
-		ASTNode localVarDec = new ASTNode("local variable declaration", null);
+		ASTNode localVarDec = new ASTNode("local variable declaration",null, curTok.getLine());
         // check first element is type then add
 		if(!isType()) 
 		{
@@ -416,24 +428,27 @@ public class Parser {
 	}
 	
 	// returns if current token is a type i.e. int, short, double keywords in java
-    // TODO: Handle <reference type>
 	boolean isType() throws Exception
 	{
-		switch (curTok.tokenCode())
-		{
-            case 1011: // boolean_kw
-            case 1017: // double_kw
-            case 1033: // int_kw
-            case 1034: // short_kw
-            case 1036: // char_kw
-            case 1043: // long_kw
-            case 1047: // float_kw
-                return true;
-		  default:  
-            return false;
-		}
-    }
-
+        if(references.contains(curTok.getLiteral())){
+            return true;
+        }else{
+            switch (curTok.tokenCode())
+            {
+                case 1011: // boolean_kw
+                case 1017: // double_kw
+                case 1033: // int_kw
+                case 1034: // short_kw
+                case 1036: // char_kw
+                case 1043: // long_kw
+                case 1047: // float_kw
+                case 1051: // string_kw
+                    return true;
+              default:
+                return false;
+            }
+        }
+	}
     // stores list of valid assignment Operators
     // TODO: Generalize to provide various valid lists by key example "assignmentExpressions" as param would retrieve assOps list
     static String[] getAssignmentOps()
@@ -442,24 +457,33 @@ public class Parser {
         return assOps;
     }
     
-	// returns a node of <primitive type> or <array type>
-    // TODO: Handle <reference type>
+	// returns a node of <primitive type> or <reference type> or <primative type array><reference type array>
     ASTNode type() throws Exception
-    {   
+    {
         enterNT("type");
-        ASTNode retVal;
-        JavaToken nextTok = lookAhead(1);
-        if(nextTok.tokenCode() == 2003) // open [
-        {
-            String typeLit = curTok.getLiteral(); // saves type info
-            nextNonSpace(); // advances to the [
-            expect("]", true); // advances again checking for ]
-            retVal = new ASTNode("array type", typeLit);
+        if(!isType() && !references.contains(curTok.getLiteral())) 
+		{
+			errorMsg("type", curTok.getLine(), curTok.getPos());
         }
-        else{
-            retVal = new ASTNode("primitive type", curTok.getLiteral());
+        ASTNode retVal = null;
+        String typeLit = curTok.getLiteral(); // saves type info
+        String ASTName = ""; // to save name of the node
+        if(references.contains(typeLit)){
+            ASTName = "reference type";
+        }else{
+            ASTName = "primative type";
         }
         nextNonSpace(); //advance past type
+        if(curTok.tokenCode() == 2003) // open [
+        {
+            expect("]", true); // advances again checking for ]
+            ASTName = ASTName + " array";
+            retVal = new ASTNode(ASTName,typeLit, curTok.getLine());
+            nextNonSpace(); //advance past ]
+        }
+        else{
+            retVal = new ASTNode(ASTName,typeLit, curTok.getLine());
+        }
         exitNT("type");
         return retVal;
     }
@@ -471,7 +495,7 @@ public class Parser {
 	ASTNode variableDeclarators() throws Exception
 	{
 		enterNT("variableDeclarators");
-        ASTNode varDecs = new ASTNode("variable declarators", null);
+        ASTNode varDecs = new ASTNode("variable declarators",null, curTok.getLine());
         boolean moreDecs = true;
         while(moreDecs)
         {
@@ -496,22 +520,16 @@ public class Parser {
 	ASTNode variableDeclarator() throws Exception
 	{
 		enterNT("variableDeclarator");
-		ASTNode varDec = new ASTNode("variable declarator", null);
+		ASTNode varDec = new ASTNode("variable declarator",null, curTok.getLine());
         // check if identifier else throw error
         expect("identifier", false);
         varDec.addChild(variableDeclaratorID());
         // check if variable initialization <followed by equal_op ('=')>
-        JavaToken nextTok = lookAhead(1);
-        if (nextTok.tokenCode() == 2032) // = 
+        if (curTok.tokenCode() == 2032) // = 
         {
-            nextNonSpace(); // advance to =
-            varDec.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+            varDec.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
             nextNonSpace(); // advance to next token
             varDec.addChild(variableInitializer());
-        }
-        else
-        {
-            nextNonSpace(); //move past variable
         }
 		exitNT("variableDeclarator");
         return varDec;
@@ -527,17 +545,17 @@ public class Parser {
         // check if identifier else throw error
         expect("identifier", false);
         String id = curTok.getLiteral();
+        nextNonSpace(); // advance past id
         // check if array identifier looking for '['
-        JavaToken nextTok = lookAhead(1);
-		if(nextTok.tokenCode() == 2003 ) // [
-        {   
-            nextNonSpace(); // advance to [
+		if(curTok.tokenCode() == 2003 ) // [
+        {
             expect("]", true); // advances again checking for ]
-            varDecID = new ASTNode("array identifier", id);    
+            varDecID = new ASTNode("array identifier",id, curTok.getLine());
+            nextNonSpace(); //advance past ]
         }
         else
         {
-            varDecID = new ASTNode("identifier", id);
+            varDecID = new ASTNode("identifier",id, curTok.getLine());
         }
 		exitNT("variableDeclaratorID");
 		return varDecID;
@@ -549,10 +567,12 @@ public class Parser {
 	ASTNode variableInitializer() throws Exception
 	{
         enterNT("variableInitializer");
-        ASTNode varInit = new ASTNode("variable initializer", null);
+        ASTNode varInit = new ASTNode("variable initializer",null, curTok.getLine());
         //check for array initializer start symbol '{'
         if(curTok.tokenCode() == 3003)
         {
+            System.out.println(curTok.getLiteral());
+            System.out.println(curTok.tokenCode());
             System.out.println("Array initialier not supported yet!");
             varInit.addChild(arrayInitializer());
         }
@@ -567,7 +587,7 @@ public class Parser {
     ASTNode arrayInitializer() throws Exception
     {
         enterNT("arrayInitializer");
-        ASTNode arrInit = new ASTNode("array initializer", null);
+        ASTNode arrInit = new ASTNode("array initializer",null, curTok.getLine());
         expect("open_bracket_lt", false);
         nextNonSpace(); //advance past {
         boolean moreElems = true;
@@ -599,7 +619,7 @@ public class Parser {
     ASTNode expressionStatement() throws Exception
     {
         enterNT("expressionStatement");
-        ASTNode expStmnt = new ASTNode("expression statement", null);
+        ASTNode expStmnt = new ASTNode("expression statement",null, curTok.getLine());
         expStmnt.addChild(statementExpression());
         expect("semi_colon_lt", false);
         nextNonSpace(); //advance past ';'
@@ -617,7 +637,7 @@ public class Parser {
     ASTNode statementExpression() throws Exception
     {
         enterNT("statementExpression");
-        ASTNode stmntExp = new ASTNode("statement expression", null);
+        ASTNode stmntExp = new ASTNode("statement expression",null, curTok.getLine());
         
         switch(curTok.tokenName())
         {
@@ -665,7 +685,7 @@ public class Parser {
 	ASTNode expression() throws Exception
 	{
         enterNT("expression");
-        ASTNode exp = new ASTNode("expression", null);
+        ASTNode exp = new ASTNode("expression",null, curTok.getLine());
         exp.addChild(assignmentExpression());
         exitNT("expression");
         return exp;
@@ -677,7 +697,7 @@ public class Parser {
 	ASTNode parenthesizedExpression() throws Exception
 	{
         enterNT("parenthesized expression");
-        ASTNode parExp = new ASTNode("parenthesized expression", null);
+        ASTNode parExp = new ASTNode("parenthesized expression",null, curTok.getLine());
         nextNonSpace(); //advance past (
         parExp.addChild(expression());
         nextNonSpace(); // advance past )
@@ -690,24 +710,46 @@ public class Parser {
 	 */
 	ASTNode assignmentExpression() throws Exception
 	{
-		//look ahead to see if next token is an <assignment operator>
-        //TODO: Assumes <left hand side> is one token. Won't work for field access or array access now but could extend to handle by ignoring [ and ] in lookahead
+		//look ahead until it finds a token that indicates either an <assignment operator> or <conditional expression>
         
         enterNT("assignmentExpression");
-        ASTNode assExp = new ASTNode("assignment expression", null);
-        JavaToken nextTok = lookAhead(1);
+        ASTNode assExp = new ASTNode("assignment expression",null, curTok.getLine());
+        // these indicated assignment expression
         String[] assOps = getAssignmentOps();
-
-        if(Arrays.asList(assOps).contains(nextTok.tokenName()))
+        ArrayList<String> find = new ArrayList<String>(Arrays.asList(assOps));
+        // these indicate conditional expression
+        find.add("+_op");
+        find.add("-_op");
+        find.add("~_op");
+        find.add("!_op");
+        find.add("||_op");
+        find.add("&&_op");
+        find.add("^_op");
+        find.add("&_op");
+        find.add("==_op");
+        find.add("<_op");
+        find.add(">_op");
+        find.add(">=_op");
+        find.add("<=_op");
+        find.add("instanceof_kw");
+        find.add("<<_op");
+        find.add(">>_op");
+        find.add("*_op");
+        find.add("/_op");
+        find.add("%_op");
+        find.add("++_op");
+        find.add("--_op");
+        find.add("EOF");
+        find.add("semi_colon_lt");
+        String fToken = lookAheadToFind(find);
+        if(debug) System.out.println("The fToken is " + fToken);
+        if(Arrays.asList(assOps).contains(fToken))
         {
-            if (debug) System.out.println("The next token is " + nextTok.tokenName());
             assExp.addChild(assignment());
-        }
-        else
+        }else
         {
             assExp.addChild(conditionalExpression(null));
         }
-
         exitNT("assignmentExpression");
         return assExp;
 	}
@@ -719,7 +761,7 @@ public class Parser {
 	ASTNode conditionalExpression(String endToken) throws Exception
 	{
         enterNT("conditionalExpression");
-		ASTNode cndExpr = new ASTNode("conditional expression", null);
+		ASTNode cndExpr = new ASTNode("conditional expression",null, curTok.getLine());
 		//expectOr(false, true, "identifier", "string_lt", "decimal_lt", "integer_lt", "(_op");
         
         //JavaToken nextTok = lookAhead(1);
@@ -901,14 +943,14 @@ public class Parser {
         ASTNode primNoNew;
         if(isLiteral(curTok.tokenName()))
         {
-            primNoNew = new ASTNode(curTok.tokenName(), curTok.getLiteral());
+            primNoNew = new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine());
             nextNonSpace(); //advance to next token
         }
         else{
             switch(curTok.tokenName()){
                 case "new_kw":
                     notImplemented("classInstanceCreationExpression");
-                    primNoNew = new ASTNode(curTok.tokenName(), curTok.getLiteral());
+                    primNoNew = new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine());
                     break;
                 case "this_kw":
                 case "super_kw":
@@ -919,7 +961,7 @@ public class Parser {
                     break;
                 default:
                     notImplemented("The default for switch case in PrimaryNoNewArray");
-                    primNoNew = new ASTNode(curTok.tokenName(), curTok.getLiteral());
+                    primNoNew = new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine());
             }
         }
         exitNT("primaryNoNewArray");
@@ -929,8 +971,8 @@ public class Parser {
     ASTNode unaryExpression() throws Exception
     {
         enterNT("unaryExpression");
-        ASTNode unExp = new ASTNode("unary expression", null);
-        unExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral())); // add operator
+        ASTNode unExp = new ASTNode("unary expression",null, curTok.getLine());
+        unExp.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine())); // add operator
         nextNonSpace(); //advance past operator
         exitNT("unaryExpression");
         return unExp;
@@ -959,8 +1001,8 @@ public class Parser {
         binOps.put("<<_op", "shift expression");
         binOps.put(">>_op", "shift expression");
         String binaryType = binOps.get(curTok.tokenName());
-        ASTNode binExp = new ASTNode(binaryType, null);
-        binExp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral())); // add operator
+        ASTNode binExp = new ASTNode(binaryType,null, curTok.getLine());
+        binExp.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine())); // add operator
         nextNonSpace(); //advance past operator
         exitNT("binaryExpression");
         return binExp;
@@ -1061,13 +1103,13 @@ public class Parser {
         switch(idType)
         {
             case "identifier":
-                id = new ASTNode("identifier", name);
+                id = new ASTNode("identifier",name, curTok.getLine());
                 break;
             case "method":
                 id = methodInvocation(name);
                 break;
             case "field access":
-                id = new ASTNode("field access", name);
+                id = new ASTNode("field access",name, curTok.getLine());
                 break;
             case "array access":
                 id = arrayAccess(name);
@@ -1083,8 +1125,8 @@ public class Parser {
     ASTNode arrayAccess(String name) throws Exception
     {
         enterNT("arrayAccess");
-        ASTNode arrAcc = new ASTNode("array access", null);
-        arrAcc.addChild(new ASTNode("identifier", name));
+        ASTNode arrAcc = new ASTNode("array access",null, curTok.getLine());
+        arrAcc.addChild(new ASTNode("identifier",name, curTok.getLine()));
         nextNonSpace(); // move past [
         arrAcc.addChild(expression());
         expect("]", false);
@@ -1096,19 +1138,26 @@ public class Parser {
     ASTNode methodInvocation(String name) throws Exception
     {
         enterNT("methodInvocation");
-        ASTNode methInv = new ASTNode("method invocation", null);
-        methInv.addChild(new ASTNode("method name", name));
+        ASTNode methInv = new ASTNode("method invocation",null, curTok.getLine());
+        methInv.addChild(new ASTNode("method name",name, curTok.getLine()));
         expect("(_op", false);
         nextNonSpace(); // move past (
         if(curTok.tokenName() == ")_op")
         {
-            methInv.addChild(new ASTNode("argument list", null));
+            methInv.addChild(new ASTNode("argument list",null, curTok.getLine()));
         }else
         {
             methInv.addChild(argumentList());
         }
         expect(")_op", false);
         nextNonSpace(); // advance past )
+        if(curTok.tokenName() == "period_lt"){
+            // another method invocation
+            expect("identifier", true);
+            String name1 = curTok.getLiteral();
+            nextNonSpace(); // advance past id
+            methInv.addChild(methodInvocation(name1));
+        }
         exitNT("methodInvocation");
         return methInv;
     }
@@ -1116,12 +1165,12 @@ public class Parser {
     ASTNode postfixExpression(String operator) throws Exception
     {
         enterNT("postfixExpression");
-        ASTNode postfix = new ASTNode("postfix expression",null);
+        ASTNode postfix = new ASTNode("postfix expression",null, curTok.getLine());
         expect("identifier", false);
-        postfix.addChild(new ASTNode("identifier", curTok.getLiteral()));
+        postfix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
         nextNonSpace();
         expect(operator, false);
-        postfix.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        postfix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); //move past operator
         exitNT("postfixExpression");
         return postfix;
@@ -1131,8 +1180,8 @@ public class Parser {
     ASTNode postfixExpressionOp() throws Exception
     {
         enterNT("postfixExpressionOp");
-        ASTNode postfixExpOp = new ASTNode("postfix expression operator", null);
-        postfixExpOp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral())); // add operator
+        ASTNode postfixExpOp = new ASTNode("postfix expression operator",null, curTok.getLine());
+        postfixExpOp.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine())); // add operator
         nextNonSpace(); //advance past operator
         exitNT("postfixExpressionOp");
         return postfixExpOp;
@@ -1141,12 +1190,12 @@ public class Parser {
     ASTNode prefixExpression(String operator) throws Exception
     {
         enterNT("prefixExpression");
-        ASTNode prefix = new ASTNode("prefix expression",null);
+        ASTNode prefix = new ASTNode("prefix expression",null, curTok.getLine());
         expect(operator, false);
-        prefix.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        prefix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); // advance past operator
         expect("identifier", false);
-        prefix.addChild(new ASTNode("identifier", curTok.getLiteral()));
+        prefix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
         nextNonSpace();
         exitNT("prefixExpression");
         return prefix;
@@ -1155,25 +1204,24 @@ public class Parser {
     ASTNode prefixExpressionOp() throws Exception
     {
         enterNT("prefixExpressionOp");
-        ASTNode prefixExpOp = new ASTNode("prefix expression operator", null);
-        prefixExpOp.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral())); // add operator
+        ASTNode prefixExpOp = new ASTNode("prefix expression operator",null, curTok.getLine());
+        prefixExpOp.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine())); // add operator
         nextNonSpace(); //advance past operator
         exitNT("prefixExpressionOp");
         return prefixExpOp;
     }
     
     // new <type> <dim exprs> <dims>?
-    // TODO: Handle class or interface type
     ASTNode arrayCreationExpression() throws Exception
     {
         enterNT("arrayCreationExpression");
-        ASTNode arrCreate = new ASTNode("array creation expression", null);
+        ASTNode arrCreate = new ASTNode("array creation expression",null, curTok.getLine());
         nextNonSpace();
-        if(!isType()) 
+        if(!isType() && !references.contains(curTok.getLiteral()))
 		{
 			errorMsg("type", curTok.getLine(), curTok.getPos());
         }
-        arrCreate.addChild(new ASTNode("array type", curTok.getLiteral()));
+        arrCreate.addChild(new ASTNode("array type",curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); // advance past type
         expect("[", false);
         arrCreate.addChild(dimExprs());
@@ -1188,7 +1236,7 @@ public class Parser {
     ASTNode dimExprs() throws Exception
     {
         enterNT("dimExprs");
-        ASTNode dimExps = new ASTNode("dim expressions", null);
+        ASTNode dimExps = new ASTNode("dim expressions",null, curTok.getLine());
         boolean cont = false;
         do{
             dimExps.addChild(dimExpr());
@@ -1221,7 +1269,7 @@ public class Parser {
     ASTNode dims() throws Exception
     {
         enterNT("dims");
-        ASTNode dms = new ASTNode("dims", null);
+        ASTNode dms = new ASTNode("dims",null, curTok.getLine());
         boolean cont = false;
         do{
             dms.addChild(dim());
@@ -1240,7 +1288,7 @@ public class Parser {
     {
         enterNT("dim");
         expect("[", false);
-        ASTNode dm = new ASTNode("dim", "[]");
+        ASTNode dm = new ASTNode("dim", "[]", curTok.getLine());
         expect("]", true);
         nextNonSpace(); // advance past ]
         exitNT("dim");
@@ -1250,7 +1298,7 @@ public class Parser {
     ASTNode argumentList() throws Exception
     {
         enterNT("argumentList");
-        ASTNode argList = new ASTNode("argument list", null);
+        ASTNode argList = new ASTNode("argument list",null, curTok.getLine());
         boolean cont = false;
         do{
             argList.addChild(expression());;
@@ -1274,11 +1322,11 @@ public class Parser {
 	ASTNode assignment() throws Exception
 	{
         enterNT("assignment");
-		ASTNode assnmnt = new ASTNode("assignment", null);
+		ASTNode assnmnt = new ASTNode("assignment",null, curTok.getLine());
         assnmnt.addChild(leftHandSide());
         String[] assOps = getAssignmentOps();
         expectOr(false, true, assOps);
-        assnmnt.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+        assnmnt.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); //advance past assignment exp
         assnmnt.addChild(assignmentExpression());
         exitNT("assignment");
@@ -1303,7 +1351,7 @@ public class Parser {
     {
     	enterNT("switchStatement");
     	expect("switch_kw", false);
-    	ASTNode switchStmnt = new ASTNode("switch statement", null);
+    	ASTNode switchStmnt = new ASTNode("switch statement",null, curTok.getLine());
     	expect("(_op", true);
     	nextNonSpace(); // move past (
     	switchStmnt.addChild(expression());
@@ -1321,7 +1369,7 @@ public class Parser {
     	enterNT("switchBlock");
     	expect("open_bracket_lt", false);
     	nextNonSpace(); // move past {
-    	ASTNode switchBlk = new ASTNode("switch block", null);
+    	ASTNode switchBlk = new ASTNode("switch block",null, curTok.getLine());
     	
     	// check if there is one before
     	switchBlk.addChild(switchBlockStatementGroups());
@@ -1332,7 +1380,7 @@ public class Parser {
     ASTNode switchBlockStatementGroups() throws Exception
     {
     	enterNT("switchBlockStatementGroups");
-    	ASTNode switchBlkStmntGroups = new ASTNode("switch block statement groups", null);
+    	ASTNode switchBlkStmntGroups = new ASTNode("switch block statement groups",null, curTok.getLine());
     	
     	switchBlkStmntGroups.addChild(switchBlockStatementGroup());
     	// recurse if multiple statement groups
@@ -1345,7 +1393,7 @@ public class Parser {
     ASTNode switchBlockStatementGroup() throws Exception
     {
     	enterNT("switchBlockStatementGroup");
-    	ASTNode switchBlkStmntGroup = new ASTNode("switch block statement group", null);
+    	ASTNode switchBlkStmntGroup = new ASTNode("switch block statement group",null, curTok.getLine());
     	switchBlkStmntGroup.addChild(switchLabels());
     	switchBlkStmntGroup.addChild(blockStatements());
     	
@@ -1357,7 +1405,7 @@ public class Parser {
     ASTNode switchLabels() throws Exception
     {
     	enterNT("switchLabels");
-    	ASTNode switchLbls = new ASTNode("switch labels", null);
+    	ASTNode switchLbls = new ASTNode("switch labels",null, curTok.getLine());
     	
     	switchLbls.addChild(switchLabel());
     	if (curTok.tokenCode() == 1026 || curTok.tokenCode() == 1007) switchLabels(); // case or default, recurse if multiple switch labels
@@ -1370,7 +1418,7 @@ public class Parser {
     ASTNode switchLabel() throws Exception
     {
     	enterNT("switchLabel");
-    	ASTNode switchLbl = new ASTNode("switch label", null);
+    	ASTNode switchLbl = new ASTNode("switch label",null, curTok.getLine());
     	if (curTok.tokenCode() == 1026) // 'case'
     	{
 	    	nextNonSpace(); // move past "case"
@@ -1394,7 +1442,7 @@ public class Parser {
     {
         enterNT("doStatement");
         expect("do_kw", false);
-        ASTNode doStmnt = new ASTNode("do statement", null);
+        ASTNode doStmnt = new ASTNode("do statement",null, curTok.getLine());
         expect("open_bracket_lt", true);
         nextNonSpace(); // move past {
         doStmnt.addChild(statement());
@@ -1414,7 +1462,7 @@ public class Parser {
     {
         enterNT("whileStatement");
         expect("while_kw", false);
-        ASTNode whileStmnt = new ASTNode("while statement", null);
+        ASTNode whileStmnt = new ASTNode("while statement",null, curTok.getLine());
         expect("(_op", true);
         nextNonSpace(); // move past (
         whileStmnt.addChild(expression());
@@ -1435,10 +1483,10 @@ public class Parser {
 
         if(curTok.tokenName() == "if_kw")
         {
-            elseStmnt = new ASTNode("else if statement", null);
+            elseStmnt = new ASTNode("else if statement",null, curTok.getLine());
             elseStmnt.addChild(ifHeaders());
         } else {
-            elseStmnt = new ASTNode("else statement", null);
+            elseStmnt = new ASTNode("else statement",null, curTok.getLine());
             elseFound = true;
         }
 
@@ -1458,33 +1506,9 @@ public class Parser {
     {
         enterNT("ifStatement");
         expect("if_kw", false);
-        ASTNode ifStmnt = new ASTNode("if statement", null);
+        ASTNode ifStmnt = new ASTNode("if statement",null, curTok.getLine());
         ifStmnt.addChild(ifHeaders());
         ifStmnt.addChild(statement());
-
-        // boolean else_found = false; //keeps track if else has appeared
-        //
-        // while(curTok.tokenName() == "else_kw")
-        // {
-        //     if(else_found)
-        //     {
-        //         customErrorMsg("Else without if", curTok.getLine(), curTok.getPos());
-        //     }
-        //     nextNonSpace();
-        //     if(curTok.tokenName() == "if_kw")
-        //     {
-        //         ASTNode elif = new ASTNode("else if statement", null);
-        //         elif.addChild(ifHeaders());
-        //         elif.addChild(statement());
-        //         ifStmnt.addChild(elif);
-        //     }
-        //     else{
-        //         ASTNode els = new ASTNode("else statement", null);
-        //         els.addChild(statement());
-        //         ifStmnt.addChild(els);
-        //         else_found = true; // no more else ifs or else permitted
-        //     }
-        // }
 
         if (curTok.tokenName() == "else_kw") ifStmnt.addChild(elseStatement());
 
@@ -1523,16 +1547,16 @@ public class Parser {
         // END check for colon token**
 
         if (isForEach) {
-            forStmnt = new ASTNode("foreach statement", null);
+            forStmnt = new ASTNode("foreach statement",null, curTok.getLine());
             nextNonSpace(); // skip type
             forStmnt.addChild(primary());
             nextNonSpace(); // skip colon
             forStmnt.addChild(expression());
         } else {
-            forStmnt = new ASTNode("for statement", null);
+            forStmnt = new ASTNode("for statement",null, curTok.getLine());
             if(curTok.tokenName() == "semi_colon_lt")
             {
-                forStmnt.addChild(new ASTNode("for init", null));
+                forStmnt.addChild(new ASTNode("for init",null, curTok.getLine()));
                 nextNonSpace(); //move past ';'
             }
             else
@@ -1541,7 +1565,7 @@ public class Parser {
             }
             if(curTok.tokenName() == "semi_colon_lt")
             {
-                forStmnt.addChild(new ASTNode("expression", null));
+                forStmnt.addChild(new ASTNode("expression",null, curTok.getLine()));
                 nextNonSpace(); //move past ';'
             }
             else
@@ -1552,7 +1576,7 @@ public class Parser {
             }
             if(curTok.tokenName() == "semi_colon_lt")
             {
-                forStmnt.addChild(new ASTNode("for update", null));
+                forStmnt.addChild(new ASTNode("for update",null, curTok.getLine()));
                 nextNonSpace(); //move past ';'
             }
             else
@@ -1571,7 +1595,7 @@ public class Parser {
 ASTNode forInit() throws Exception
     {
         enterNT("forInit");
-        ASTNode forIn = new ASTNode("for init", null);
+        ASTNode forIn = new ASTNode("for init",null, curTok.getLine());
         do
         {
             //TODO: ADD modifiers as possible indicators
@@ -1595,7 +1619,7 @@ ASTNode forInit() throws Exception
     ASTNode forUpdate() throws Exception
     {
         enterNT("forUpdate");
-        ASTNode forUp = new ASTNode("for update", null);
+        ASTNode forUp = new ASTNode("for update",null, curTok.getLine());
         forUp.addChild(statementExpressionList());
         exitNT("forUpdate");
         return forUp;
@@ -1604,7 +1628,7 @@ ASTNode forInit() throws Exception
     ASTNode statementExpressionList() throws Exception
     {
         enterNT("statementExpressionList");
-        ASTNode stmntExpList = new ASTNode("statement expression list", null);
+        ASTNode stmntExpList = new ASTNode("statement expression list",null, curTok.getLine());
         boolean moreStmnts = true;
         while(moreStmnts)
         {
@@ -1626,7 +1650,7 @@ ASTNode forInit() throws Exception
     ASTNode typeDeclarations() throws Exception
 	{
 		enterNT("typeDeclarations");
-        ASTNode typeDecs = new ASTNode("type declarations", null);
+        ASTNode typeDecs = new ASTNode("type declarations",null, curTok.getLine());
         while(curTok.tokenCode() != 4001) // EOF
         {
             typeDecs.addChild(classDeclaration());
@@ -1639,14 +1663,23 @@ ASTNode forInit() throws Exception
     ASTNode classDeclaration() throws Exception
     {
         enterNT("classDeclaration");
-        ASTNode classDec = new ASTNode("class declaration", null);
+        ASTNode classDec = new ASTNode("class declaration",null, curTok.getLine());
         if(isModifier(null))
         {
             classDec.addChild(handleModifiers("class"));
+        }else{
+            // create null place holder
+            classDec.addChild(new ASTNode("modifiers",null, curTok.getLine()));
         }
+        
         expect("class_kw", false);
         expect("identifier", true);
-        classDec.addChild(new ASTNode("identifier", curTok.getLiteral()));
+        classDec.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
+        if(references.contains(curTok.getLiteral()))
+        {
+            customErrorMsg(curTok.getLiteral() + " has already been declared", curTok.getLine(), curTok.getPos());
+        }
+        references.add(curTok.getLiteral());
         nextNonSpace(); // advance past identifier
         classDec.addChild(classBody());
         exitNT("classDeclaration");
@@ -1697,14 +1730,14 @@ ASTNode forInit() throws Exception
     ASTNode handleModifiers(String type) throws Exception
     {
         enterNT("handleModifiers");
-        ASTNode mod = new ASTNode("modifiers", null);
+        ASTNode mod = new ASTNode("modifiers",null, curTok.getLine());
         while(isModifier(null))
         {
             if(!isModifier(type))
             {
                 customErrorMsg(curTok.getLiteral() + " is not a " + type + " modifier", curTok.getLine(), curTok.getPos());
             }
-            mod.addChild(new ASTNode(curTok.tokenName(), curTok.getLiteral()));
+            mod.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
             nextNonSpace(); // advance past modifier
         }
         exitNT("handleModifiers");
@@ -1714,7 +1747,7 @@ ASTNode forInit() throws Exception
     ASTNode classBody() throws Exception
     {
         enterNT("classBody");
-        ASTNode clsBody = new ASTNode("class body", null);
+        ASTNode clsBody = new ASTNode("class body",null, curTok.getLine());
         expect("open_bracket_lt", false);
         String s = nextNonSpace();
         // if not } then contains block statements
@@ -1728,11 +1761,151 @@ ASTNode forInit() throws Exception
         return clsBody;
     }
     
-    ASTNode classBodyDeclarations(){
+    ASTNode classBodyDeclarations() throws Exception
+    {
         enterNT("classBodyDeclarations");
-        ASTNode clsBodyDecs = new ASTNode("class body declarations", null);
+        ASTNode clsBodyDecs = new ASTNode("class body declarations",null, curTok.getLine());
+        while(curTok.tokenCode() != 3004 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 4001 = EOF 1026 = case_kw, 1007 = default_kw
+        {
+            // error msg if reach EOF while parsing
+            if(curTok.tokenCode() == 4001)
+            {
+                errorMsg("}",curTok.getLine(), curTok.getPos());
+            }
+            clsBodyDecs.addChild(classMemberDeclaration());
+        }
         exitNT("classBodyDeclarations");
         return clsBodyDecs;
+    }
+    
+    ASTNode classMemberDeclaration() throws Exception
+    {
+        enterNT("classMemberDeclaration");
+        ASTNode clsMemDec = null;
+        ArrayList<String> find = new ArrayList<String>();
+        find.add("EOF");
+        find.add("semi_colon_lt");
+        find.add("(_op");
+        String fToken = lookAheadToFind(find);
+        if(fToken == "(_op"){
+            clsMemDec = methodDeclaration();
+        }else{
+            clsMemDec = fieldDeclaration();
+        }
+        exitNT("classMemeberDeclaration");
+        return clsMemDec;
+    }
+    
+    ASTNode fieldDeclaration() throws Exception
+    {
+        enterNT("fieldDeclaration");
+        ASTNode fieldDec = new ASTNode("field declaration",null, curTok.getLine());
+        if(isModifier(null))
+        {
+            fieldDec.addChild(handleModifiers("field"));
+        }else{
+            //create null placeholder
+            fieldDec.addChild(new ASTNode("modifiers",null, curTok.getLine()));
+        }
+		if(!isType()) 
+		{
+			errorMsg("type", curTok.getLine(), curTok.getPos());
+        }
+        fieldDec.addChild(type());
+        fieldDec.addChild(variableDeclarators());
+        expect("semi_colon_lt", false);
+        nextNonSpace(); //advance past ;
+		exitNT("fieldDeclaration");
+        return fieldDec;
+    }
+    
+    ASTNode methodDeclaration() throws Exception
+    {
+        enterNT("methodDeclaration");
+        ASTNode methDec = new ASTNode("method declaration", null, curTok.getLine());
+        methDec.addChild(methodHeader());
+        methDec.addChild(block());
+        exitNT("methodDeclaration");
+        return methDec;
+    }
+    
+    ASTNode methodHeader() throws Exception
+    {
+        enterNT("method header");
+        ASTNode methHeader = new ASTNode("method header", null, curTok.getLine());
+        if(isModifier(null))
+        {
+            methHeader.addChild(handleModifiers("method"));
+        }else{
+            methHeader.addChild(new ASTNode("modifiers",null, curTok.getLine()));
+        }
+        if(!isType() && curTok.tokenName() != "void_kw")
+		{
+			errorMsg("type", curTok.getLine(), curTok.getPos());
+        }
+        if(curTok.tokenName() == "void_kw")
+        {
+            methHeader.addChild(new ASTNode("primative type", "void_kw", curTok.getLine()));
+            nextNonSpace(); //advance past void
+        }else{
+            methHeader.addChild(type());
+        }
+        methHeader.addChild(methodDeclarator());
+        // TODO: Handle throws
+        exitNT("method header");
+        return methHeader;
+    }
+    
+    ASTNode methodDeclarator() throws Exception
+    {
+        enterNT("method declarator");
+        ASTNode methDec = new ASTNode("method declarator", null, curTok.getLine());
+        expect("identifier", false);
+        methDec.addChild(new ASTNode("identifier", curTok.getLiteral(), curTok.getLine()));
+        expect("(_op", true);
+        nextNonSpace(); // move past (
+        if(curTok.tokenName() == ")_op")
+        {
+            methDec.addChild(new ASTNode("formal parameter list",null, curTok.getLine()));
+        }else
+        {
+            methDec.addChild(formalParameterList());
+        }
+        expect(")_op", false);
+        nextNonSpace(); // advance past )
+        exitNT("method declarator");
+        return methDec;
+    }
+    
+    ASTNode formalParameterList() throws Exception
+    {
+        enterNT("formalParameterList");
+        ASTNode paramList = new ASTNode("formal parameter list",null, curTok.getLine());
+        boolean cont = false;
+        do{
+            paramList.addChild(formalParameter());
+            // check for an additional param
+            if(curTok.tokenName() == "comma_lt")
+            {
+                nextNonSpace(); //advance past ,
+                cont = true;
+            }else
+            {
+                cont = false;
+            }
+        }while(cont);
+        exitNT("formalParameterList");
+        return paramList;
+    }
+    
+    ASTNode formalParameter() throws Exception
+    {
+        enterNT("formalParameter");
+        ASTNode formalParam = new ASTNode("formal parameter",null, curTok.getLine());
+        formalParam.addChild(type());
+        formalParam.addChild(variableDeclaratorID());
+        exitNT("formalParameter");
+        return formalParam;
     }
     
 	// print out the non-terminal being entered
@@ -1764,7 +1937,7 @@ ASTNode forInit() throws Exception
     void printTree(ASTNode root){
         ArrayList<ASTNode> stack = new ArrayList<ASTNode>();
         ArrayList<String> visited = new ArrayList<String>();
-        ASTNode parentNode = new ASTNode("start", null);
+        ASTNode parentNode = new ASTNode("start",null, curTok.getLine());
         parentNode.setDepth(0);
         stack.add(root);
         visited.add(root.getKey());
