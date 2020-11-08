@@ -7,12 +7,14 @@ class ASTNode {
     private String type;
     private String value;
     private String key;
+    private int line;
     private int depth;
     
-    ASTNode(String type, String value) 
+    ASTNode(String type, String value, int line) 
     {
         this.type = type;
         this.value = value;
+        this.line = line;
         this.key = null;
         this.depth = -1;
         children = new ArrayList<ASTNode>();
@@ -114,6 +116,10 @@ class ASTNode {
     String getValue(){
         return this.value;
     }
+    
+    int getLine(){
+        return this.line;
+    }
 
     // rebuilds tree underneath node to aide the translator
     // with more complex structures (nfix operators in control conditions)
@@ -135,10 +141,10 @@ class ASTNode {
             System.out.print(" ");
         }
         if(this.value != null){
-            System.out.println(this.value + "    <" + this.type + ">");
+            System.out.println(this.value + "    <" + this.type + ">: " + this.line);
         }
         else{
-            System.out.println("<" + this.type + ">");
+            System.out.println("<" + this.type + ">: " + this.line);
         }
     }
     
