@@ -125,6 +125,7 @@ class LexScanner{
         tokType.put(" ", new JavaToken(" ", "space_lt", 3009, true));
         tokType.put("\"", new JavaToken("\"", "double_quote_lt", 3010, true));
         tokType.put("'", new JavaToken("'", "single_quote_lt", 3011, true));
+        tokType.put("null", new JavaToken("null", "null_lt", 3016, true));
         //tokType.put("/", new JavaToken("/", "forward_slash", 3013, true));
         // For reference but not stored in this data structure
         // id, "identifier:3001"

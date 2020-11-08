@@ -240,7 +240,7 @@ public class Parser {
 
     boolean isLiteral(String token)
     {
-        ArrayList<String> lits = new ArrayList<String>(Arrays.asList("string_lt", "integer_lt","decimal_lt"));
+        ArrayList<String> lits = new ArrayList<String>(Arrays.asList("string_lt", "integer_lt","decimal_lt", "null_lt"));
         return lits.contains(token);
     }
     
@@ -446,6 +446,7 @@ public class Parser {
                 case 1036: // char_kw
                 case 1043: // long_kw
                 case 1047: // float_kw
+                case 1051: // string_kw
                     return true;
               default:
                 return false;
@@ -574,6 +575,8 @@ public class Parser {
         //check for array initializer start symbol '{'
         if(curTok.tokenCode() == 3003)
         {
+            System.out.println(curTok.getLiteral());
+            System.out.println(curTok.tokenCode());
             System.out.println("Array initialier not supported yet!");
             varInit.addChild(arrayInitializer());
         }
@@ -1645,7 +1648,11 @@ ASTNode forInit() throws Exception
         if(isModifier(null))
         {
             classDec.addChild(handleModifiers("class"));
+        }else{
+            // create null place holder
+            classDec.addChild(new ASTNode("modifiers",null, curTok.getLine()));
         }
+        
         expect("class_kw", false);
         expect("identifier", true);
         classDec.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
@@ -1777,6 +1784,9 @@ ASTNode forInit() throws Exception
         if(isModifier(null))
         {
             fieldDec.addChild(handleModifiers("field"));
+        }else{
+            //create null placeholder
+            fieldDec.addChild(new ASTNode("modifiers",null, curTok.getLine()));
         }
 		if(!isType()) 
 		{
@@ -1807,6 +1817,8 @@ ASTNode forInit() throws Exception
         if(isModifier(null))
         {
             methHeader.addChild(handleModifiers("method"));
+        }else{
+            methHeader.addChild(new ASTNode("modifiers",null, curTok.getLine()));
         }
         if(!isType() && curTok.tokenName() != "void_kw")
 		{
