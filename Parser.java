@@ -1106,6 +1106,13 @@ public class Parser {
         }
         expect(")_op", false);
         nextNonSpace(); // advance past )
+        if(curTok.tokenName() == "period_lt"){
+            // another method invocation
+            expect("identifier", true);
+            String name1 = curTok.getLiteral();
+            nextNonSpace(); // advance past id
+            methInv.addChild(methodInvocation(name1));
+        }
         exitNT("methodInvocation");
         return methInv;
     }

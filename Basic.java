@@ -54,7 +54,7 @@ int [] y = new int[3];
 y[2] = 2;
 diameter = 3.0;
 unit = "metric";
-circle.x = radius(diameter, math.PI).unit("km");
+circle.x = radius(diameter, math.PI).unit("km").toString();
 i *= 3;
 ++i;
 i++;

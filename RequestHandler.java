@@ -24,7 +24,7 @@ public class RequestHandler {
         // Load python code to return map
         Map<String, String> retMap = new HashMap<String,String>();
         retMap.put("statusCode", "200");
-        retMap.put("body", response);
+        retMap.put("body", t.getSource());
         return retMap;
     }
 }
