@@ -458,8 +458,12 @@ public class Parser {
 	// returns a node of <primitive type> or <array type>
     // TODO: Handle <reference type>
     ASTNode type() throws Exception
-    {   
+    {
         enterNT("type");
+        if(!isType()) 
+		{
+			errorMsg("type", curTok.getLine(), curTok.getPos());
+        }
         ASTNode retVal;
         JavaToken nextTok = lookAhead(1);
         if(nextTok.tokenCode() == 2003) // open [
@@ -514,17 +518,11 @@ public class Parser {
         expect("identifier", false);
         varDec.addChild(variableDeclaratorID());
         // check if variable initialization <followed by equal_op ('=')>
-        JavaToken nextTok = lookAhead(1);
-        if (nextTok.tokenCode() == 2032) // = 
+        if (curTok.tokenCode() == 2032) // = 
         {
-            nextNonSpace(); // advance to =
             varDec.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
             nextNonSpace(); // advance to next token
             varDec.addChild(variableInitializer());
-        }
-        else
-        {
-            nextNonSpace(); //move past variable
         }
 		exitNT("variableDeclarator");
         return varDec;
@@ -540,13 +538,13 @@ public class Parser {
         // check if identifier else throw error
         expect("identifier", false);
         String id = curTok.getLiteral();
+        nextNonSpace(); // advance past id
         // check if array identifier looking for '['
-        JavaToken nextTok = lookAhead(1);
-		if(nextTok.tokenCode() == 2003 ) // [
-        {   
-            nextNonSpace(); // advance to [
+		if(curTok.tokenCode() == 2003 ) // [
+        {
             expect("]", true); // advances again checking for ]
-            varDecID = new ASTNode("array identifier",id, curTok.getLine());    
+            varDecID = new ASTNode("array identifier",id, curTok.getLine());
+            nextNonSpace(); //advance past ]
         }
         else
         {
@@ -1782,7 +1780,7 @@ ASTNode forInit() throws Exception
         enterNT("methodDeclaration");
         ASTNode methDec = new ASTNode("method declaration", null, curTok.getLine());
         methDec.addChild(methodHeader());
-        //System.exit(0);
+        methDec.addChild(block());
         exitNT("methodDeclaration");
         return methDec;
     }
@@ -1825,13 +1823,43 @@ ASTNode forInit() throws Exception
             methDec.addChild(new ASTNode("formal parameter list",null, curTok.getLine()));
         }else
         {
-            notImplemented("formalParameterList");
-            //methDec.addChild(formalParameterList());
+            methDec.addChild(formalParameterList());
         }
         expect(")_op", false);
         nextNonSpace(); // advance past )
         exitNT("method declarator");
         return methDec;
+    }
+    
+    ASTNode formalParameterList() throws Exception
+    {
+        enterNT("formalParameterList");
+        ASTNode paramList = new ASTNode("formal parameter list",null, curTok.getLine());
+        boolean cont = false;
+        do{
+            paramList.addChild(formalParameter());
+            // check for an additional param
+            if(curTok.tokenName() == "comma_lt")
+            {
+                nextNonSpace(); //advance past ,
+                cont = true;
+            }else
+            {
+                cont = false;
+            }
+        }while(cont);
+        exitNT("formalParameterList");
+        return paramList;
+    }
+    
+    ASTNode formalParameter() throws Exception
+    {
+        enterNT("formalParameter");
+        ASTNode formalParam = new ASTNode("formal parameter",null, curTok.getLine());
+        formalParam.addChild(type());
+        formalParam.addChild(variableDeclaratorID());
+        exitNT("formalParameter");
+        return formalParam;
     }
     
 	// print out the non-terminal being entered
