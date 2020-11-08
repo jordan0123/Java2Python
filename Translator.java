@@ -1,6 +1,10 @@
 import java.io.IOException;
 
+import java.util.Arrays;
+
 import java.util.Set;
+import java.util.HashSet;
+
 import java.util.Stack;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -78,7 +82,11 @@ public class Translator {
         return pyBuilder.getSource();
     }
 
-    void translate(ASTNode root)
+    void translate(ASTNode root) {
+        translate(root, new HashSet<String>());
+    }
+
+    void translate(ASTNode root, Set<String> options)
     {
         int lineTicket = -1;
         int lastLine = 0;
@@ -141,15 +149,24 @@ public class Translator {
                 break;
 
                 case "conditional expression":
+                boolean stringUpcast = nodeStack.peek().contains("string_lt");
+                boolean exempt = false; // exempt from upcasting (is string or operator)?
                 children = nodeStack.pop().getChildren();
 
                 for (ASTNode child : children) {
-                    if (child.getValue() != null && child.getValue() != "")
-                        pyBuilder.append(child.getValue() + ' ');
-                    else {
-                        translate(child);
-                        pyBuilder.append(" ");
-                    }
+                    exempt = (child.getType().equals("string_lt"))
+                          || (child.getType().matches("(.*)expression"))
+                          && (!child.getType().matches("parenthesized(.*)"));
+
+                    if (stringUpcast && !exempt)
+                        pyBuilder.append("str(");
+                    if (child.getValue() != null && !child.getValue().equals(""))
+                        pyBuilder.append(child.getValue());
+                    else translate(child);
+                    if (stringUpcast && !exempt)
+                        pyBuilder.append(")");
+
+                    pyBuilder.append(" ");
                 }
 
                 // remove trailing space...
@@ -164,7 +181,7 @@ public class Translator {
                 pyBuilder.append("(");
                 translate(children.get(1));
 
-                System.out.println("[" + methodName + "]");
+                if (debug) System.out.println("[" + methodName + "]");
                 if (methodName.equals("System.out.print")) {
                     pyBuilder.append(", end=\"\"");
                 }
@@ -175,12 +192,15 @@ public class Translator {
                 case "argument list":
                 children = nodeStack.pop().getChildren();
 
-                for (ASTNode node : children) {
-                    translate(node);
-                    pyBuilder.append(", ");
+                if (children.size() > 0) {
+                    for (ASTNode node : children) {
+                        translate(node);
+                        pyBuilder.append(", ");
+                    }
+
+                    pyBuilder.backspace(2);
                 }
 
-                pyBuilder.backspace(2);
                 break;
 
                 case "array initializer":

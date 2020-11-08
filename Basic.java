@@ -54,12 +54,13 @@ int [] y = new int[3];
 y[2] = 2;
 diameter = 3.0;
 unit = "metric";
-circle.x = radius(diameter, math.PI).unit("km");
+circle.x.y = radius(diameter, math.PI());
+circle.x = here();
 i *= 3;
 ++i;
 i++;
 
-System.out.println("Part A" + "Part B");
+System.out.println("Part A" + "Part B" + (2 + 3) + y[2]);
 System.out.print("One" + "Two");
 
 int [] intArr = {1,2,3};

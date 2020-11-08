@@ -69,6 +69,16 @@ class ASTNode {
         return null;
     }
 
+    // returns true if node contains a child of type
+    // 'type'
+    boolean contains(String type) {
+        for (ASTNode child : children) {
+            if (child.getType().equals(type)) return true;
+        }
+
+        return false;
+    }
+
     // set parent node
     void setParent(ASTNode parent) {this.parent = parent; }
     // get parent node
@@ -112,7 +122,8 @@ class ASTNode {
     }
 
     String getValue(){
-        return this.value;
+        if (this.value == null) return "";
+        else return this.value;
     }
 
     // rebuilds tree underneath node to aide the translator

@@ -432,10 +432,11 @@ public class Parser {
 		  default:  
             return false;
 		}
-	}
+    }
+
     // stores list of valid assignment Operators
     // TODO: Generalize to provide various valid lists by key example "assignmentExpressions" as param would retrieve assOps list
-    String[] getAssignmentOps()
+    static String[] getAssignmentOps()
     {
         String[] assOps = {"equals_op", "*=_op", "/=_op", "%=_op", "+=_op", "-=_op", "<<=_op", ">>=_op"};
         return assOps;
@@ -653,6 +654,7 @@ public class Parser {
                     stmntExp.addChild(handleIdentifier());
                 }
         }
+
         exitNT("statementExpression");
         return stmntExp;
     }
@@ -1026,6 +1028,7 @@ public class Parser {
                     //consume and add previous to qualified name
                     name = name + ".";
                     idType="field access";
+                    periodEnd = true;
                     break;
                 case "(_op":
                     //method
