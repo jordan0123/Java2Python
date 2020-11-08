@@ -71,7 +71,7 @@ public class Parser {
 		{
             if(curTok.tokenCode() == 3014)
             {
-                System.out.println("$$$$$$$Comment found in nonSpace");
+                if(debug) System.out.println("$$$$$$$Comment found in nonSpace");
                 comments.add(new Comment(curTok.getLiteral(), curTok.getLine()));
             }
             nextToken();
@@ -88,7 +88,7 @@ public class Parser {
         {
             if(retVal.tokenCode() == 3014)
             {
-                System.out.println("$$$$$$$$Comment found in peekToken");
+                if(debug) System.out.println("$$$$$$$$Comment found in peekToken");
                 comments.add(new Comment(retVal.getLiteral(), retVal.getLine()));
                 lexer.nextToken();
                 retVal = lexer.getJavaToken();
@@ -1750,9 +1750,8 @@ ASTNode forInit() throws Exception
         find.add("semi_colon_lt");
         find.add("(_op");
         String fToken = lookAheadToFind(find);
-        if(fToken == "(_op)"){
-            //clsMemDec = methodDeclaration();
-            notImplemented("methodDeclaration");
+        if(fToken == "(_op"){
+            clsMemDec = methodDeclaration();
         }else{
             clsMemDec = fieldDeclaration();
         }
@@ -1778,6 +1777,63 @@ ASTNode forInit() throws Exception
         nextNonSpace(); //advance past ;
 		exitNT("fieldDeclaration");
         return fieldDec;
+    }
+    
+    ASTNode methodDeclaration() throws Exception
+    {
+        enterNT("methodDeclaration");
+        ASTNode methDec = new ASTNode("method declaration", null, curTok.getLine());
+        methDec.addChild(methodHeader());
+        //System.exit(0);
+        exitNT("methodDeclaration");
+        return methDec;
+    }
+    
+    ASTNode methodHeader() throws Exception
+    {
+        enterNT("method header");
+        ASTNode methHeader = new ASTNode("method header", null, curTok.getLine());
+        if(isModifier(null))
+        {
+            methHeader.addChild(handleModifiers("method"));
+        }
+        if(!isType() && curTok.tokenName() != "void_kw")
+		{
+			errorMsg("type", curTok.getLine(), curTok.getPos());
+        }
+        if(curTok.tokenName() == "void_kw")
+        {
+            methHeader.addChild(new ASTNode("primative type", "void_kw", curTok.getLine()));
+            nextNonSpace(); //advance past void
+        }else{
+            methHeader.addChild(type());
+        }
+        methHeader.addChild(methodDeclarator());
+        // TODO: Handle throws
+        exitNT("method header");
+        return methHeader;
+    }
+    
+    ASTNode methodDeclarator() throws Exception
+    {
+        enterNT("method declarator");
+        ASTNode methDec = new ASTNode("method declarator", null, curTok.getLine());
+        expect("identifier", false);
+        methDec.addChild(new ASTNode("identifier", curTok.getLiteral(), curTok.getLine()));
+        expect("(_op", true);
+        nextNonSpace(); // move past (
+        if(curTok.tokenName() == ")_op")
+        {
+            methDec.addChild(new ASTNode("formal parameter list",null, curTok.getLine()));
+        }else
+        {
+            notImplemented("formalParameterList");
+            //methDec.addChild(formalParameterList());
+        }
+        expect(")_op", false);
+        nextNonSpace(); // advance past )
+        exitNT("method declarator");
+        return methDec;
     }
     
 	// print out the non-terminal being entered
