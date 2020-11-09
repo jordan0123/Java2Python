@@ -77,7 +77,7 @@ public class Parser {
             }
             nextToken();
 		}
-        if (debug) System.out.println("Current token " + curTok.tokenName());
+        if (debug) System.out.println("Current token " + curTok.tokenName() + " token line " + curTok.getLine());
 		return curTok.tokenName();
 	}
     
@@ -105,10 +105,11 @@ public class Parser {
         JavaToken tok;
         //printBuffer();
         while(n > buffer.size()){
-            tok = nextPeekToken();
+            // copy by value to avoid multiple occur of one reference with dupe values
+            tok = nextPeekToken().getCopy();
             buffer.add(tok);
         }
-        printBuffer();
+        //printBuffer();
         return buffer.get(n - 1);
     }
     
@@ -118,7 +119,7 @@ public class Parser {
             JavaToken print;
             for(int i = 0; i < buffer.size(); i++){
                 print = buffer.get(i);
-                System.out.print("Index: " + i + " Token: " + print.tokenName() + " ");
+                System.out.print("Index: " + i + " Literal: " + print.getLiteral() + " Line: " + print.getLine());
             }
             System.out.println("");
         }
@@ -632,8 +633,8 @@ public class Parser {
      *           <preincrement expression> | <postincrement expression>
      *            <predecrement expression> | <postdecrement expression> | 
      *           <method invocation> | <class instance creation expression>
-     *  INCOMPLETE ASSUMES ASSIGNMENT
-     */ 
+     *
+     */
     ASTNode statementExpression() throws Exception
     {
         enterNT("statementExpression");
@@ -648,7 +649,7 @@ public class Parser {
                 stmntExp.addChild(prefixExpression("++_op"));
                 break;
             case "new_kw":
-                notImplemented("classInstanceCreationExpression");
+                stmntExp.addChild(classInstanceCreationExpression());
                 break;
             default:
                 //either assignment, post(increment|decrement), or method invocation
@@ -948,8 +949,7 @@ public class Parser {
         else{
             switch(curTok.tokenName()){
                 case "new_kw":
-                    notImplemented("classInstanceCreationExpression");
-                    primNoNew = new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine());
+                    primNoNew = classInstanceCreationExpression();
                     break;
                 case "this_kw":
                 case "super_kw":
@@ -1657,6 +1657,33 @@ ASTNode forInit() throws Exception
         exitNT("typeDeclarations");
 		return typeDecs;
 	}
+    
+    
+    ASTNode classInstanceCreationExpression() throws Exception
+    {
+        enterNT("classInstanceCreationExpression");
+        ASTNode clsInst = new ASTNode("class instance creation expression",null, curTok.getLine());
+        expect("new_kw", false);
+        nextNonSpace(); //advance past new
+        if(!references.contains(curTok.getLiteral()))
+        {
+            errorMsg("reference type", curTok.getLine(), curTok.getPos());
+        }
+        clsInst.addChild(new ASTNode("reference type",curTok.getLiteral(), curTok.getLine()));
+        expect("(_op", true);
+        nextNonSpace(); // move past (
+        if(curTok.tokenName() == ")_op")
+        {
+            clsInst.addChild(new ASTNode("argument list",null, curTok.getLine()));
+        }else
+        {
+            clsInst.addChild(argumentList());
+        }
+        expect(")_op", false);
+        nextNonSpace(); // advance past )
+        exitNT("classInstanceCreationExpression");
+        return clsInst;
+    }
     
     ASTNode classDeclaration() throws Exception
     {
