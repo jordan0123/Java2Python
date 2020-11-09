@@ -741,6 +741,7 @@ public class Parser {
         find.add("++_op");
         find.add("--_op");
         find.add("EOF");
+        find.add("colon_lt");
         find.add("semi_colon_lt");
         String fToken = lookAheadToFind(find);
         if(debug) System.out.println("The fToken is " + fToken);
@@ -1358,8 +1359,6 @@ public class Parser {
     	expect(")_op", false);
     	nextNonSpace(); // move past )
     	switchStmnt.addChild(switchBlock());
-        expect("close_bracket_lt", false);
-    	nextNonSpace(); //move past 
     	exitNT("switchStatement");
     	return switchStmnt;
     }
@@ -1368,11 +1367,13 @@ public class Parser {
     {
     	enterNT("switchBlock");
     	expect("open_bracket_lt", false);
-    	nextNonSpace(); // move past {
+    	String s =nextNonSpace(); // move past {
     	ASTNode switchBlk = new ASTNode("switch block",null, curTok.getLine());
-    	
-    	// check if there is one before
-    	switchBlk.addChild(switchBlockStatementGroups());
+    	if(s != "close_bracket_lt"){
+            switchBlk.addChild(switchBlockStatementGroups());
+        }
+        expect("close_bracket_lt", false);
+        nextNonSpace(); // move past switch block
         exitNT("switchBlock");
     	return switchBlk;
     }
@@ -1381,11 +1382,15 @@ public class Parser {
     {
     	enterNT("switchBlockStatementGroups");
     	ASTNode switchBlkStmntGroups = new ASTNode("switch block statement groups",null, curTok.getLine());
-    	
-    	switchBlkStmntGroups.addChild(switchBlockStatementGroup());
-    	// recurse if multiple statement groups
-    	if (curTok.tokenCode() == 1026 || curTok.tokenCode() == 1007) switchBlockStatementGroups(); // 1026 = case_kw, 1007 = default_kw
-    	
+    	// continue while current token is case or default
+        while(curTok.tokenCode() == 1026 || curTok.tokenCode() == 1007 || curTok.tokenCode() == 4001){
+            // error msg if reach EOF while parsing
+            if(curTok.tokenCode() == 4001) // EOF
+            {
+                customErrorMsg("EOF reached while parsing", curTok.getLine(), curTok.getPos());
+            }
+            switchBlkStmntGroups.addChild(switchBlockStatementGroup());
+        }
     	exitNT("switchBlockStatementGroups");
     	return switchBlkStmntGroups;
     }
@@ -1406,9 +1411,15 @@ public class Parser {
     {
     	enterNT("switchLabels");
     	ASTNode switchLbls = new ASTNode("switch labels",null, curTok.getLine());
-    	
-    	switchLbls.addChild(switchLabel());
-    	if (curTok.tokenCode() == 1026 || curTok.tokenCode() == 1007) switchLabels(); // case or default, recurse if multiple switch labels
+    	// continue while current token is default or case
+        while(curTok.tokenCode() == 1026 || curTok.tokenCode() == 1007 || curTok.tokenCode == 4001){
+    	   // error msg if reach EOF while parsing
+            if(curTok.tokenCode() == 4001) // EOF
+            {
+                customErrorMsg("EOF reached while parsing", curTok.getLine(), curTok.getPos());
+            }
+            switchLbls.addChild(switchLabel());
+        }
     	
     	exitNT("switchLabels");
     	
