@@ -1885,7 +1885,7 @@ ASTNode forInit() throws Exception
         String s = nextNonSpace();
         // if not } then contains explicit constructor statements or block statements
         if(s != "close_bracket_lt"){
-            if(s == "super_kw" || s == "this_kw"){
+            if((s == "super_kw" || s == "this_kw") && lookAhead(1).tokenName() == "(_op"){
                 conBody.addChild(explicitConstructorInvocation());
             }
             conBody.addChild(blockStatements());
