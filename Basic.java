@@ -48,6 +48,7 @@
     for(int k = 0; k < 10; ++k){
         j = 5;
     }
+
 // whole line comment
 i = 3 + -j;
 int [] y = new int[3]; // end line comment
@@ -70,3 +71,16 @@ for (int i : intArr) {
 }
 
 a = n || b && a || c && (++a == 2 || ++b == a++) && d;
+
+switch (i) {
+    case 1:
+    System.out.println(i);
+    case 2:
+    System.out.println(i+1);
+
+    case 3:
+
+    default:
+    System.out.print("Error::");
+    System.out.println("\"not found\"");
+}
