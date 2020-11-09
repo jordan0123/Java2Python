@@ -11,6 +11,7 @@ int noModifier;
     
     public BasicClass(){
         super();
+        radius = 3;
         System.out.println("Initialized!");
     }
     
