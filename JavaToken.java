@@ -42,4 +42,9 @@ public class JavaToken{
     
     String getLiteral() {return this.literal;}
     
+    JavaToken getCopy() {
+        JavaToken copy = new JavaToken(this.literal, this.tokenName, this.tokenCode, this.possMulti);
+        copy.setLine(this.line);
+        return copy;
+    }
 }
