@@ -189,15 +189,19 @@ class LexScanner{
     }
     
     void handleString(String lexeme) throws Exception{
+        boolean skipNext = false;
         String next;
         int startPos = getPosition();
-        while(!(next = sa.nextLex()).equals(lexeme)){
+
+        while(!(next = sa.nextLex()).equals(lexeme) || skipNext){
             if(next.equals("EOF")){
                 throw new Exception("String starting at line " + getLine() + " pos " + startPos + " is unterminated.");
             }else{
+                skipNext = next.equals("\\");
                 this.curLex += next;
             }
         }
+
         this.curLex += next;
         this.curJavaToken = new JavaToken(this.curLex, "string_lt" ,3012);
         sa.nextLex();
