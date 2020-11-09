@@ -344,7 +344,40 @@ public class Parser {
         exitNT("blockStatement");
 		return blockStmnt;
 	}
-	
+	// for handling misc one word exp statements like break, continue, return, throw
+    ASTNode miscStatements() throws Exception
+    {
+        String nodeName = "";
+        boolean needExp = false; // throws expression needs an expression the others do not
+        switch(curTok.tokenName()){
+            case "break_kw":
+                nodeName = "break statement";
+                break;
+            case "continue_kw":
+                nodeName = "continue statement";
+                break;
+            case "return_kw":
+                nodeName = "return statement";
+                break;
+            case "throw_kw":
+                nodeName = "throws statement";
+                needExp = true;
+                break;
+        }
+        ASTNode miscStmnt = new ASTNode(nodeName,curTok.getLiteral(), curTok.getLine());
+        nextNonSpace(); // move past kw
+        if(curTok.tokenName() != "semi_colon_lt"){
+            miscStmnt.addChild(expression());
+        }else{
+            if(needExp){
+                expect("expression", false);
+            }
+        }
+        expect("semi_colon_lt",false);
+        nextNonSpace(); // move past ;
+        return miscStmnt;
+    }
+    
     ASTNode statement() throws Exception
     {
         enterNT("statement");
@@ -373,17 +406,16 @@ public class Parser {
                 stmnt.addChild(whileStatement());
                 break;
             case "break_kw":
-                notImplemented("break statement");
+                stmnt.addChild(miscStatements());
                 break;
             case "continue_kw":
-                notImplemented("continue statement");
+                stmnt.addChild(miscStatements());
                 break;
             case "return_kw":
-                notImplemented("return statement");
+                stmnt.addChild(miscStatements());
                 break;
             case "throw_kw":
-                // for some reason 'throw' is for <throws statement> and 'throws' is for <throws> 
-                notImplemented("throws statement");
+                stmnt.addChild(miscStatements());
                 break;
             case "synchronized_kw":
                 // TODO: Check if this has a python analogue
