@@ -389,6 +389,7 @@ public class Parser {
                 break;
             case "semi_colon_lt": // ;
                 stmnt.addChild(new ASTNode("empty statement",null, curTok.getLine()));
+                nextNonSpace();
                 break;
             case "if_kw":
                 stmnt.addChild(ifStatement());
