@@ -58,8 +58,11 @@ unit = "metric";
 circle.x = radius(diameter, math.PI).unit("km").toString();
 circle.x = here();
 i *= 3;
+
 ++i;
+i--;
 i++;
+--i;
 
 System.out.println("Part A" + "Part B" + (2 + 3) + y[2]);
 System.out.print("One" + "Two");
@@ -75,10 +78,12 @@ a = n || b && a || c && (++a == 2 || ++b == a++) && d;
 switch (i) {
     case 1:
     System.out.println(i);
-    case 2:
+    case y[2]:
     System.out.println(i+1);
+    break;
 
     case 3:
+    break;
 
     default:
     System.out.print("Error::");

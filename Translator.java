@@ -1,10 +1,8 @@
 import java.io.IOException;
 
 import java.util.Collections;
-
 import java.util.Arrays;
 import java.util.Set;
-import java.util.HashSet;
 
 import java.util.Stack;
 import java.util.ArrayList;
@@ -15,6 +13,7 @@ public class Translator {
     private PythonBuilder pyBuilder;
 
     private Set<String> idList;
+    private HashTableSet<String> options;
 
     private boolean debug = true;
     private boolean crashOnError = true;
@@ -28,6 +27,7 @@ public class Translator {
 
     Translator() {
         pyBuilder = new PythonBuilder();
+        options = new HashTableSet<String>();
         litTable = new HashMap<String, String>();
 
         litTable.put("||", "or");
@@ -159,11 +159,7 @@ public class Translator {
         finalize(new ArrayList<Comment>());
     }
 
-    void translate(ASTNode root) {
-        translate(root, new HashSet<String>());
-    }
-
-    void translate(ASTNode root, Set<String> options)
+    void translate(ASTNode root)
     {
         int lineTicket = -1;
         int lastLine = 0;
@@ -349,7 +345,7 @@ public class Translator {
 
                     if (child.getValue() != null && !child.getValue().equals(""))
                         pyBuilder.append(child.getValue());
-                    else translate(child, options);
+                    else translate(child);
 
                     if (stringUpcast && !exempt)
                         pyBuilder.append(")");
@@ -359,7 +355,7 @@ public class Translator {
 
                 // remove trailing space...
                 pyBuilder.backspace();
-
+                options.remove("inConditional");
                 break;
 
                 case "method invocation":
@@ -510,12 +506,18 @@ public class Translator {
                 case "prefix expression":
                 children = nodeStack.pop().getChildren();
 
-                if (children.get(0).getType().equals("++_op")) {
-                    foundNfix[0] = true; // found a preincrement expression
-                    pyBuilder.append("_preinc(" + children.get(1).getValue() + ")");
+                if (options.contains("inConditional")) {
+                    if (children.get(0).getType().equals("++_op")) {
+                        foundNfix[0] = true; // found a preincrement expression requiring a function
+                        pyBuilder.append("_preinc(" + children.get(1).getValue() + ")");
+                    } else {
+                        foundNfix[1] = true; // found a predecrement expression requiring a function
+                        pyBuilder.append("_predec(" + children.get(1).getValue() + ")");
+                    }
                 } else {
-                    foundNfix[1] = true; // found a predecrement expression
-                    pyBuilder.append("_predec(" + children.get(1).getValue() + ")");
+                    pyBuilder.append(children.get(1).getValue() +
+                            ((children.get(0).getType().equals("++_op"))
+                            ? " += " : " -= ") + "1");
                 }
 
                 break;
@@ -523,12 +525,18 @@ public class Translator {
                 case "postfix expression":
                 children = nodeStack.pop().getChildren();
 
-                if (children.get(1).getType().equals("++_op")) {
-                    foundNfix[2] = true; // found a postincrement expression
-                    pyBuilder.append("_postinc(" + children.get(0).getValue() + ")");
+                if (options.contains("inConditional")) {
+                    if (children.get(1).getType().equals("++_op")) {
+                        foundNfix[2] = true; // found a postincrement expression requiring a function
+                        pyBuilder.append("_postinc(" + children.get(0).getValue() + ")");
+                    } else {
+                        foundNfix[3] = true; // found a postdecrement expression requiring a function
+                        pyBuilder.append("_postdec(" + children.get(0).getValue() + ")");
+                    }
                 } else {
-                    foundNfix[3] = true; // found a postdecrement expression
-                    pyBuilder.append("_postdec(" + children.get(0).getValue() + ")");
+                    pyBuilder.append(children.get(0).getValue() +
+                            ((children.get(1).getType().equals("++_op"))
+                            ? " += " : " -= ") + "1");
                 }
 
                 break;
