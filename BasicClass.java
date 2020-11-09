@@ -16,6 +16,8 @@ int noModifier;
     
     public static void main(String[] args){
         System.out.println('Hello, World!');
+        BasicClass bc = new BasicClass();
+        bc.foo(new BasicClass(), 7);
     }
 }
 
