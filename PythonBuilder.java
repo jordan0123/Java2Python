@@ -1,9 +1,12 @@
+import java.util.Arrays;
+
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class PythonBuilder {
     ArrayList<String> sourceList;   // list of lines
-    ArrayList<Integer> indentList;      // list of line indents
+    ArrayList<Integer> indentList;  // list of line indents
 
     String current;                 // current line
 
@@ -14,11 +17,13 @@ public class PythonBuilder {
 
     private int lineUID = 0;        // UID for line position
     HashMap<Integer, Integer> lineTabs;     // tabulations for line positioning
+    HashMap<Integer, Integer> lineMap;      // maps line in source-file to logical line
 
     PythonBuilder() {
         sourceList = new ArrayList<String>();
         indentList = new ArrayList<Integer>();
         lineTabs = new HashMap<Integer, Integer>();
+        lineMap = new HashMap<Integer, Integer>();
 
         sourceList.add("");
         indentList.add(0);
@@ -85,22 +90,41 @@ public class PythonBuilder {
         decreaseIndent(cursor);
     }
 
+    void addSourceLine(int lineNumber) {
+        if (!lineMap.containsKey(lineNumber)) lineMap.put(lineNumber, cursor);
+    }
+
+    int mapLine(int lineNumber) {
+        if (lineMap.containsKey(lineNumber)) return lineMap.get(lineNumber);
+        else return -1;
+    }
+
     // append to current line
     void append(String app) {
         sourceList.set(cursor, sourceList.get(cursor)+app);
     }
 
-    void addLine(String line) {
-        sourceList.add(++cursor, line);
-        indentList.add(cursor, indentList.get(cursor-1));
+    void addLine(String line, int location) {
+        sourceList.add(location, line);
+        indentList.add(location, (location-1>-1) ? indentList.get(location-1) : 0);
 
         for (int i : lineTabs.keySet()) {
-            if (lineTabs.get(i) >= cursor){
+            if (lineTabs.get(i) >= location){
                 lineTabs.put(i, lineTabs.get(i)+1);
             }
         }
 
+        for (int i : lineMap.keySet()) {
+            if (lineMap.get(i) >= location){
+                lineMap.put(i, lineMap.get(i)+1);
+            }
+        }
+
         numLines++;
+    }
+
+    void addLine(String line) {
+        addLine(line, ++cursor);
     }
 
     // adds an empty line
@@ -110,6 +134,10 @@ public class PythonBuilder {
 
     void newLine() {
         addLine();
+    }
+
+    void newLine(int repeat) {
+        for (int i = 0; i < repeat; i++) newLine();
     }
 
     // add contents of current line to source
@@ -136,10 +164,14 @@ public class PythonBuilder {
         backspace(1);
     }
 
-    void addLines(ArrayList<String> lines) {
+    void addLines(List<String> lines) {
         for (String s : lines) {
             addLine(s);
         }
+    }
+
+    void addLines(String[] lines) {
+        addLines(Arrays.asList(lines));
     }
 
     void addLines(PythonBuilder pBuilder, boolean force) {

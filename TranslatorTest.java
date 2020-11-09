@@ -31,7 +31,7 @@ public class TranslatorTest {
         t.setDebug(true);
         t.setCrashOnError(false);
 
-        t.translate(p.parse());
+        t.finalize(p.parse());
 
         System.out.print(t.getSource());
     }
