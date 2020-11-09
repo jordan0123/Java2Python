@@ -1341,7 +1341,7 @@ public class Parser {
     ASTNode leftHandSide() throws Exception
     {
         enterNT("leftHandSide");
-        expect("identifier", false);
+        expectOr(false, true, "identifier", "super_kw", "this_kw");
         ASTNode lhs = handleIdentifier();
         exitNT("leftHandSide");
         return lhs;
