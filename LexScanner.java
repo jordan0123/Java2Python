@@ -212,6 +212,7 @@ class LexScanner{
         int startPos = getPosition();
         int startLine = getLine();
         String next = sa.nextLex();
+        boolean halt = true;
         if(next.equals("/")){
             int line = sa.currentLine();
             next = sa.nextLex();
@@ -220,12 +221,15 @@ class LexScanner{
                 this.curLex += next;
                 next = sa.nextLex();
             } 
+            this.curJavaToken = new JavaToken(this.curLex, "single_line_comment", 3014);
+        }else if(tokType.containsKey(this.curLex + next)){
+            halt = false;
+            advance(this.curLex+next);
         }else{
-            throw new Exception("Illegal character '/' " + getLine() + " pos " + startPos);
+            ; // do nothing and let the current token get handled in nextToken
         }
-        this.curJavaToken = new JavaToken(this.curLex, "single_line_comment", 3014);
-        //stops sa from advancing on the next lexeme
-        if(!next.equals("EOF")){
+        //stops sa from advancing on the next lexeme if halt necessary
+        if(!next.equals("EOF") && halt){
             sa.haltNext(startPos,startLine);
         }
     }

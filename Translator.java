@@ -373,6 +373,15 @@ public class Translator {
                 pyBuilder.append(")");
                 break;
 
+                case "class instance creation expression":
+                children = nodeStack.pop().getChildren();
+                String className = children.get(0).getValue();
+                translate(children.get(0));
+                pyBuilder.append("(");
+                translate(children.get(1));
+                pyBuilder.append(")");
+                break;
+                
                 case "argument list":
                 children = nodeStack.pop().getChildren();
 
