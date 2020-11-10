@@ -20,19 +20,28 @@ public class TranslatorTest {
             e.printStackTrace();
         }
         
+        // Set up translator
         LexScanner l = new LexScanner(source);
         Parser p = new Parser();
         Translator t = new Translator();
-
         p.setLexer(l);
-
         p.setDebug(false);
         p.setPrintTree(false);
         t.setDebug(true);
         t.setCrashOnError(false);
-
-        t.finalize(p.parse());
-
-        System.out.print(t.getSource());
+        // Translate Java Code
+        ASTNode program = p.parse();
+        String response = "";
+        String statusCode = "200";
+        if(p.getErrorMsg() != null)
+        {
+        	statusCode = "501";
+            response = p.getErrorMsg();
+        }else
+        {
+        	t.finalize(program);
+        	response = t.getSource();
+        }
+        System.out.print("Response " + response + "\nStatus Code: " + statusCode);
     }
 }

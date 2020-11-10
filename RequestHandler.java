@@ -5,10 +5,11 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class RequestHandler {
-    public Map<String,String> handleRequest(Map<String,String> event, Context context) throws Exception{
-        // Get source from the event
+    public Map<String,String> handleRequest(Map<String,String> event, Context context) throws Exception{ 
+    	// Get source from the event
         String source = event.get("code");
-        // Set up translator
+        
+    	// Set up translator
         LexScanner l = new LexScanner(source);
         Parser p = new Parser();
         Translator t = new Translator();
@@ -17,14 +18,23 @@ public class RequestHandler {
         p.setPrintTree(false);
         t.setDebug(true);
         t.setCrashOnError(false);
-
-        // Translate Java Code
-        t.translate(p.parse());
-
+        // Check for errors in parse then translate Java Code
+        ASTNode program = p.parse();
+        String response = "";
+        String statusCode = "200";
+        if(p.getErrorMsg() != null)
+        {
+        	statusCode = "501";
+            response = p.getErrorMsg();
+        }else
+        {
+        	t.finalize(program);
+        	response = t.getSource();
+        }
         // Load python code to return map
         Map<String, String> retMap = new HashMap<String,String>();
-        retMap.put("statusCode", "200");
-        retMap.put("body", t.getSource());
+        retMap.put("statusCode", statusCode);
+        retMap.put("body", response);
         return retMap;
     }
 }
