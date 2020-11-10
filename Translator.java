@@ -401,9 +401,7 @@ public class Translator {
                     if (stringUpcast && !exempt)
                         pyBuilder.append("str(");
 
-                    if (child.getValue() != null && !child.getValue().equals(""))
-                        pyBuilder.append(child.getValue());
-                    else translate(child);
+                    translate(child);
 
                     if (stringUpcast && !exempt)
                         pyBuilder.append(")");
@@ -640,7 +638,7 @@ public class Translator {
                 */
 
                 default:
-                if (nodeStack.peek().getValue() != null && nodeStack.peek().getValue() != "") {
+                if (nodeStack.peek().getValue() != null && !nodeStack.peek().getValue().equals("")) {
                     pyBuilder.append(remap(nodeStack.pop().getValue()));
                 } else nodeStack = expandStack(nodeStack);
             }

@@ -101,4 +101,10 @@ switch (i) {
     System.out.println("\"not found\"");
 }
 
+boolean a = true;
+boolean b = false;
+a = false;
+b = true;
+a = true || false || b;
+
 System.out.println("Done!");
