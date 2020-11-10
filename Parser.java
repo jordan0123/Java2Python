@@ -695,7 +695,6 @@ public class Parser {
                 find.add("EOF");
                 find.add("semi_colon_lt");
                 String fToken = lookAheadToFind(find);
-                if(debug) System.out.println("The fToken is " + fToken);
                 if(Arrays.asList(assOps).contains(fToken))
                 {
                     stmntExp.addChild(assignment());

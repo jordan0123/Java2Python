@@ -319,7 +319,7 @@ class LexScanner{
     }
     
     // Returns current JavaToken
-    JavaToken getJavaToken(){ return this.curJavaToken; }
+    JavaToken getJavaToken(){ return this.curJavaToken.getCopy(); }
     
     
     // Returns current token - slightly different than next token
