@@ -45,6 +45,7 @@ public class JavaToken{
     JavaToken getCopy() {
         JavaToken copy = new JavaToken(this.literal, this.tokenName, this.tokenCode, this.possMulti);
         copy.setLine(this.line);
+        copy.setPos(this.pos);
         return copy;
     }
 }
