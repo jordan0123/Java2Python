@@ -129,10 +129,9 @@ public class Parser {
     // used for tagging parts of code that are not implement
     // i.e. need to call statement but it's not implemented yet
     // notImplemented("statement");
-    void notImplemented(String funcName)
+    void notImplemented(String funcName) throws Exception
     {
-        System.out.println("This is a " + funcName + ". Not implemented yet.");
-        System.exit(0);
+        customErrorMsg("This is a " + funcName + ". Not implemented yet.", curTok.getLine(), curTok.getPos());
     }
     
     // optionally gets nextToken and checks to see if it matches expecting token, throws error otherwise
@@ -222,7 +221,6 @@ public class Parser {
         if (foundTok.length() < 1 && raiseError){
             List<String> exp = Arrays.asList(expTokens);
             System.out.println("Token "+ curTok.tokenName() + " does not match any expected tokens " + exp.toString());
-            System.exit(0);
         }
         return foundTok;
     }
@@ -1080,8 +1078,7 @@ public class Parser {
                     customErrorMsg("Error: Illegal start of expression", curTok.getLine(), curTok.getPos());
                     break;
                 default:
-                    if (debug) System.out.println("Found another ASTNode in binaryOrUnary " + lastNode);
-                    System.exit(0);
+                    customErrorMsg("System error Found another ASTNode in binaryOrUnary " + lastNode, curTok.getLine(), curTok.getPos());
             }
         }
         return retVal;
@@ -1150,8 +1147,7 @@ public class Parser {
                 id = arrayAccess(name);
                 break;
             default:
-                if (debug) System.out.println("Somethings wrong with idType ###" + idType + "###");
-                System.exit(0);
+                customErrorMsg("System error Somethings wrong with idType ###" + idType + "###", curTok.getLine(), curTok.getPos());
         }
         exitNT("handleIdentifier");
         return id;
