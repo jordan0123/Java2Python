@@ -77,7 +77,7 @@ public class Parser {
             }
             nextToken();
 		}
-        if (debug) System.out.println("Current token " + curTok.tokenName() + " token line " + curTok.getLine());
+        if (debug) System.out.println("Current token " + curTok.tokenName() + " Literal " + curTok.getLiteral() + " token line " + curTok.getLine());
 		return curTok.tokenName();
 	}
     
@@ -892,6 +892,7 @@ public class Parser {
                     case "^_op":
                     case "&_op":
                     case "==_op":
+                    case "!=_op":
                     case "<<_op":
                     case ">>_op":
                         cndExpr.addChild(binaryExpression());
@@ -1032,6 +1033,7 @@ public class Parser {
         binOps.put("^_op", "exclusive or expression");
         binOps.put("&_op", "and expression");
         binOps.put("==_op", "equality expression");
+        binOps.put("!=_op", "inequality expression");
         binOps.put("<<_op", "shift expression");
         binOps.put(">>_op", "shift expression");
         String binaryType = binOps.get(curTok.tokenName());

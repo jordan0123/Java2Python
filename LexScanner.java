@@ -86,7 +86,7 @@ class LexScanner{
         tokType.put("]", new JavaToken("]", "]", 2004, false));
         tokType.put(".", new JavaToken(".", "._op", 2005, false));
         tokType.put("~", new JavaToken("~", "~_op", 2006, false));
-        tokType.put("!", new JavaToken("!", "!_op", 2007, false));
+        tokType.put("!", new JavaToken("!", "!_op", 2007, true));
         tokType.put("^", new JavaToken("^", "^_op", 2008, false));
         tokType.put("++", new JavaToken("++", "++_op", 2009, false));
         tokType.put("--", new JavaToken("--", "--_op", 2010, false));
