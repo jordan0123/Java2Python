@@ -28,8 +28,11 @@ public class RequestHandler {
             response = p.getErrorMsg();
         }else
         {
-        	t.finalize(program);
-        	response = t.getSource();
+            t.finalize(program);
+            if (t.isErrorOccurred()) {
+                statusCode = "502";
+                response = t.getErrorMessage();
+            } else response = t.getSource();
         }
         // Load python code to return map
         Map<String, String> retMap = new HashMap<String,String>();

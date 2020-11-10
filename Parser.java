@@ -976,6 +976,7 @@ public class Parser {
         ASTNode primNoNew;
         if(isLiteral(curTok.tokenName()))
         {
+            if (debug) System.out.println(curTok.getLiteral() + " " + curTok.tokenName());
             primNoNew = new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine());
             nextNonSpace(); //advance to next token
         }
