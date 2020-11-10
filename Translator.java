@@ -165,11 +165,15 @@ public class Translator {
 
         if (mainMethod == null) return;
         // add main method stub and invoker
+        pyBuilder.setCursor(-1);
+        pyBuilder.addLine("import sys");
+        pyBuilder.newLine(1);
         pyBuilder.setCursor(pyBuilder.size()-1);
         options.add("translateMain");
         translate(mainMethod);
         // generate invoker
-
+        pyBuilder.addLine("if __name__ == '__main__':");
+        pyBuilder.addLine("    main(sys.argv)");
         options.remove("translateMain");
     }
 
@@ -287,7 +291,8 @@ public class Translator {
                 if (options.contains("translateMain") || !nodeStack.peek().isMainMethod()) {
                     children = nodeStack.pop().getChildren();
                     pyBuilder.append("def ");
-                    translate(children.get(0));
+                    if (options.contains("translateMain")) pyBuilder.append("main(args)");
+                    else translate(children.get(0));
                     pyBuilder.append(":");
                     pyBuilder.newLine();
                     pyBuilder.increaseIndent();
