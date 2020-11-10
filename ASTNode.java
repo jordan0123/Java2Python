@@ -132,6 +132,17 @@ class ASTNode {
         return this.line;
     }
 
+    boolean isMainMethod() {
+        ArrayList<ASTNode> children = this.getChild("modifiers").getChildren();
+        if (children.size() != 2 || !children.get(0).getType().equals("public_kw") || !children.get(1).getType().equals("static_kw")) return false;
+        children = this.getChild("method header").getChildren();
+        if (!children.get(1).getValue().equals("void_kw")) return false;
+        children = this.getChild("method declarator").getChildren();
+        if (!children.get(0).getValue().equals("main")) return false;
+
+        return true;
+    }
+
     // rebuilds tree underneath node to aide the translator
     // with more complex structures (nfix operators in control conditions)
     ASTNode rebuild() {

@@ -15,6 +15,8 @@ public class Translator {
     private Set<String> idList;
     private HashTableSet<String> options;
 
+    private ASTNode mainMethod = null;
+
     private boolean debug = true;
     private boolean crashOnError = false;
     private boolean errorOccurred = false;
@@ -160,6 +162,15 @@ public class Translator {
                 pyBuilder.newLine();
             }
         }
+
+        if (mainMethod == null) return;
+        // add main method stub and invoker
+        pyBuilder.setCursor(pyBuilder.size()-1);
+        options.add("translateMain");
+        translate(mainMethod);
+        // generate invoker
+
+        options.remove("translateMain");
     }
 
     void finalize(ASTNode root, ArrayList<Comment> comments) {

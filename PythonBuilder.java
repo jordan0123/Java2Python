@@ -31,6 +31,8 @@ public class PythonBuilder {
         current = "";
     }
 
+    int size() { return sourceList.size(); }
+
     int getCursor() {
         return cursor;
     }
