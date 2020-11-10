@@ -273,18 +273,14 @@ public class Translator {
                 break;
 
                 case "method declaration":
-                if (options.contains("translateMain") || !nodeStack.peek().isMainMethod()) {
-                    children = nodeStack.pop().getChildren();
-                    pyBuilder.append("def ");
-                    translate(children.get(0));
-                    pyBuilder.append(":");
-                    pyBuilder.newLine();
-                    pyBuilder.increaseIndent();
-                    translate(children.get(1));
-                    pyBuilder.decreaseIndent();
-                } else if (mainMethod == null) {
-                    mainMethod = nodeStack.pop();
-                } else error("translate", "Multiple main methods defined.");
+                children = nodeStack.pop().getChildren();
+                pyBuilder.append("def ");
+                translate(children.get(0));
+                pyBuilder.append(":");
+                pyBuilder.newLine();
+                pyBuilder.increaseIndent();
+                translate(children.get(1));
+                pyBuilder.decreaseIndent();
                 break;
 
                 case "method header":
