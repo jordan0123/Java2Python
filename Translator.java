@@ -592,8 +592,8 @@ public class Translator {
                 pyBuilder.newLine();
                 pyBuilder.increaseIndent();
                 translate(children.get(3));
-                pyBuilder.newLine();
                 translate(children.get(2));
+                pyBuilder.newLine();
                 pyBuilder.decreaseIndent();
                 break;
 
