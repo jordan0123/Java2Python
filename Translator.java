@@ -261,11 +261,12 @@ public class Translator {
                 children = nodeStack.pop().getChildren();
                 pyBuilder.append("class ");
 
-                if (!(children.get(0).childCount() > 0) || !children.get(0).getChildren().get(0).getType().equals("public_kw"))
+                if (!(children.get(0).childCount() > 0) || !children.get(0).getChildren().get(0).getType().equals("public_kw")) {
                     // prepend the identifier of the class with an underscore,
                     // which doesn't mean anything to the python interpreter but
                     // is good naming convention nonetheless
                     //pyBuilder.append("_");
+                }
                 
                 pyBuilder.append(children.get(1).getValue() + ":");
                 pyBuilder.newLine();
@@ -277,11 +278,12 @@ public class Translator {
                 case "field declaration":
                 children = nodeStack.pop().getChildren();
 
-                if (!(children.get(0).childCount() > 0) || !children.get(0).getChildren().get(0).getType().equals("public_kw"))
+                if (!(children.get(0).childCount() > 0) || !children.get(0).getChildren().get(0).getType().equals("public_kw")) {
                     // prepend the identifier of the field with an underscore,
                     // which doesn't mean anything to the python interpreter but
                     // is good naming convention nonetheless
                     //pyBuilder.append("_");
+                }
 
                 translate(children.get(2));
                 if (pyBuilder.getLine().equals("_")) pyBuilder.backspace();
