@@ -16,7 +16,7 @@ public class RequestHandler {
         p.setLexer(l);
         p.setDebug(false);
         p.setPrintTree(false);
-        t.setDebug(true);
+        t.setDebug(false);
         t.setCrashOnError(false);
         // Check for errors in parse then translate Java Code
         ASTNode program = p.parse();
