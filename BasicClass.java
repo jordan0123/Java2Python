@@ -1,12 +1,13 @@
 public class BasicClass {
 
 private int radius = 2; // radius of the Class
+private int k = 3;
 private int diameter; // the diameter to be calculated
 int noModifier;
 
     public BasicClass foo(BasicClass b, int j){
         int k = i;
-        System.out.println("This is k " + k);
+        System.out.println("This is k " + this.k);
     }
     
     public BasicClass(){

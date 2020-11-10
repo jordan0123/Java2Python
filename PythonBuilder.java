@@ -91,7 +91,11 @@ public class PythonBuilder {
     }
 
     void addSourceLine(int lineNumber) {
-        if (!lineMap.containsKey(lineNumber)) lineMap.put(lineNumber, cursor);
+        int tempCursor = cursor;
+        for (; lineNumber > 0 && !lineMap.containsKey(lineNumber); lineNumber--) {
+            lineMap.put(lineNumber, (tempCursor > -1) ? tempCursor : 0);
+            tempCursor -= 1;
+        }
     }
 
     int mapLine(int lineNumber) {

@@ -39,9 +39,16 @@ public class TranslatorTest {
             response = p.getErrorMsg();
         }else
         {
-        	t.finalize(program);
-        	response = t.getSource();
+            t.finalize(program);
+            if (t.isErrorOccurred()) {
+                statusCode = "502";
+                response = t.getErrorMessage();
+            } else response = t.getSource();
         }
         System.out.println("Response:\n\n" + response + "\nStatus Code: " + statusCode);
+
+        if (t.isErrorOccurred() && t.getDebug()) {
+            System.out.println("Debug:\n\n" + t.getSource());
+        }
     }
 }
