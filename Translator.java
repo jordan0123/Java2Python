@@ -57,16 +57,21 @@ public class Translator {
     boolean isErrorOccurred() { return errorOccurred; }
     String getErrorMessage() { return errorMessage; }
 
-    void notImplemented(String callName, String nodeType) {
+    void error(String callName, String message) {
         if (errorOccurred) return;
         errorOccurred = true;
-        errorMessage = "Error::Translator::" + callName + ": encountered child type '" + nodeType + "' not implemented.";
+        errorMessage = "Error::Translator::" + callName + ": " + message;
 
         if (crashOnError || debug) {
             System.out.println(errorMessage);
         }
 
         if (crashOnError) System.exit(0);
+    }
+
+    void notImplemented(String callName, String nodeType) {
+        String message = "encountered child type '" + nodeType + "' not implemented.";
+        error(callName, message);
     }
 
     // expandStack()
@@ -268,23 +273,28 @@ public class Translator {
                 break;
 
                 case "method declaration":
-                children = nodeStack.pop().getChildren();
-                pyBuilder.append("def ");
-                translate(children.get(0));
-                pyBuilder.append(":");
-                pyBuilder.newLine();
-                pyBuilder.increaseIndent();
-                translate(children.get(1));
-                pyBuilder.decreaseIndent();
+                if (options.contains("translateMain") || !nodeStack.peek().isMainMethod()) {
+                    children = nodeStack.pop().getChildren();
+                    pyBuilder.append("def ");
+                    translate(children.get(0));
+                    pyBuilder.append(":");
+                    pyBuilder.newLine();
+                    pyBuilder.increaseIndent();
+                    translate(children.get(1));
+                    pyBuilder.decreaseIndent();
+                } else if (mainMethod == null) {
+                    mainMethod = nodeStack.pop();
+                } else error("translate", "Multiple main methods defined.");
                 break;
 
                 case "method header":
                 children = nodeStack.pop().getChildren();
-                if (!(children.get(0).childCount() > 0) || !children.get(0).getChildren().get(0).getType().equals("public_kw"))
+                if (!(children.get(0).childCount() > 0) || !children.get(0).getChildren().get(0).getType().equals("public_kw")) {
                     // prepend the identifier of the method with an underscore,
                     // which doesn't mean anything to the python interpreter but
                     // is good naming convention nonetheless
                     pyBuilder.append("_");
+                }
                 
                 translate(children.get(2));
                 break;
