@@ -42,6 +42,6 @@ public class TranslatorTest {
         	t.finalize(program);
         	response = t.getSource();
         }
-        System.out.print("Response " + response + "\nStatus Code: " + statusCode);
+        System.out.println("Response:\n\n" + response + "\nStatus Code: " + statusCode);
     }
 }
