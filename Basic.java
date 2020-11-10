@@ -84,9 +84,21 @@ switch (i) {
     break;
 
     case 3:
+    switch (y[2]) {
+        case 2:
+        System.out.println(2);
+        case i--:
+        System.out.println(3);
+        break;
+
+        default:
+        i = 2;
+    }
     break;
 
     default:
     System.out.print("Error::");
     System.out.println("\"not found\"");
 }
+
+System.out.println("Done!");

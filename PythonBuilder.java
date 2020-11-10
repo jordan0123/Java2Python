@@ -16,6 +16,7 @@ public class PythonBuilder {
                                     // to the file
 
     private int lineUID = 0;        // UID for line position
+
     HashMap<Integer, Integer> lineTabs;     // tabulations for line positioning
     HashMap<Integer, Integer> lineMap;      // maps line in source-file to logical line
 
