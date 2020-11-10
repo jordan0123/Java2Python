@@ -570,6 +570,24 @@ public class Translator {
                 pyBuilder.decreaseIndent();
                 break;
 
+                case "return statement":
+                case "continue statement":
+                case "break statement":
+                case "throws statement":
+                String kw = "";
+                if(nodeStack.peek().getType() == "throws statement"){
+                    kw = "raise"; //throws is only one that needs to be translated
+                }else{
+                    kw = nodeStack.peek().getValue();
+                }
+                pyBuilder.append(kw + " ");
+                if(nodeStack.peek().childCount()>0){
+                    children = nodeStack.pop().getChildren();
+                    translate(children.get(0));
+                }else{
+                    nodeStack.pop();
+                }
+                break;
                 case "prefix expression":
                 children = nodeStack.pop().getChildren();
 
