@@ -44,6 +44,8 @@ public class Translator {
         litTable.put("true", "True");
         litTable.put("false", "False");
         litTable.put("this", "self");
+        litTable.put("null", "None");
+        litTable.put("%", "mod");
         litTable.put("System.out.print", "print");
         litTable.put("System.out.println", "print");
 
