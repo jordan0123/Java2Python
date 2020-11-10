@@ -304,7 +304,9 @@ class LexScanner{
                 lexeme += next;
             }
         }
-        sa.haltNext(startPos);
+        if(!abort){
+            sa.haltNext(startPos);
+        }
     }
     // Determines if lexeme is an identifier
     boolean isID(String lexeme){
