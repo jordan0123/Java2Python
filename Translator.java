@@ -416,7 +416,7 @@ public class Translator {
 
                 case "method invocation":
                 children = nodeStack.pop().getChildren();
-                String methodName = children.get(0).getValue();
+                String methodName = children.get(0).getValue().replaceFirst("^this.", "self.");
                 translate(children.get(0));
                 pyBuilder.append("(");
                 translate(children.get(1));
@@ -639,7 +639,7 @@ public class Translator {
 
                 default:
                 if (nodeStack.peek().getValue() != null && !nodeStack.peek().getValue().equals("")) {
-                    pyBuilder.append(remap(nodeStack.pop().getValue()));
+                    pyBuilder.append(remap(nodeStack.pop().getValue().replaceFirst("^this.", "self.")));
                 } else nodeStack = expandStack(nodeStack);
             }
         }
