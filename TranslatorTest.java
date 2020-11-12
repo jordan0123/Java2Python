@@ -50,5 +50,20 @@ public class TranslatorTest {
         if (t.isErrorOccurred() && t.getDebug()) {
             System.out.println("Debug:\n\n" + t.getSource());
         }
+
+        if (p.getErrorMsg() != null || t.isErrorOccurred()) return;
+
+        // write python source to an executable python file
+        try {
+            String[] fArray = filename.split("\\\\");
+            filename = fArray[fArray.length-1];
+            FileWriter writer = new FileWriter(filename + ".py");
+            writer.write(t.getSource());
+            writer.close();
+            System.out.println("Python source written to: " + filename + ".py");
+        } catch (IOException e) {
+            System.out.println("An error occurred while writing to file.");
+            e.printStackTrace();
+        }
     }
 }
