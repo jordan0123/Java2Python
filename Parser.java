@@ -1063,6 +1063,8 @@ public class Parser {
                 case "postfix expression":
                 case "postfix expression operator":
                 case "method invocation":
+                case "array access":
+                case "field access":
                     retVal = 2;
                     break;
                 case "prefix expression operator": // case where exp after prefix has not been handled yet
