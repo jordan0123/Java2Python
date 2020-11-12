@@ -132,6 +132,10 @@ public class Parser {
             this.references.add(key);
         }
     }
+    // returns a map of classes and their respective methods
+    HashMap<String, String[]> getClassMethods(){
+        return this.fp.getClassMethods();
+    }
     
     // Identifies when a non-implemented function would be called during parse and exit
     // used for tagging parts of code that are not implement
