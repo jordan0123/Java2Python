@@ -137,6 +137,20 @@ public class Parser {
         return this.fp.getClassMethods();
     }
     
+    boolean classHasMethod(String className, String methodName){
+        if(this.fp.getClassMethods().containsKey(className)){
+            String[] methods = this.fp.getClassMethods().get(className);
+            for(String method: methods){
+                if(method.equals(methodName)){
+                    return true;
+                }
+            }
+            return false;
+        }else{
+            return false;
+        }
+        
+    }
     // Identifies when a non-implemented function would be called during parse and exit
     // used for tagging parts of code that are not implement
     // i.e. need to call statement but it's not implemented yet
