@@ -170,7 +170,7 @@ public class Translator {
         pyBuilder.addLine("import sys");
         pyBuilder.newLine(1);
         pyBuilder.setCursor(pyBuilder.size()-1);
-        options.add("translateMain");
+        options.addGlobal("translateMain");
         translate(mainMethod);
         // generate invoker
         pyBuilder.addLine("if __name__ == '__main__':");
@@ -204,6 +204,14 @@ public class Translator {
             switch(nodeStack.peek().getType()) {
                 case "block statement":
                 pyBuilder.addSourceLine(nodeStack.peek().getLine());
+
+                if (options.containsCurrent("addBreakCondition")) {
+                    pyBuilder.append("if not _sw_break:");
+                    pyBuilder.newLine();
+                    pyBuilder.increaseIndent();
+                    options.clearCurrent("addBreakCondition");
+                }
+
                 translate(nodeStack.pop().getChildren().get(0));
                 if (pyBuilder.getLine() != "") pyBuilder.newLine();
                 break;
@@ -374,6 +382,9 @@ public class Translator {
                  *  - remove trailing _sw_cond toggle after a lone break statement
                 */
                 case "switch statement":
+                notImplemented("translate", "switch statement");
+                options.increaseScope();
+                options.addStack("inSwitch");
                 children = nodeStack.pop().getChildren();
                 switchCmp.push(children.get(0)); // add ASTNode to be testing against to the stack
 
@@ -384,22 +395,28 @@ public class Translator {
                 pyBuilder.addLine("_sw_cond = False   # condition stating previous condition passed");
                 pyBuilder.newLine();
                 translate(children.get(1));
-                pyBuilder.append("# end of switch statement for ");
+                pyBuilder.append("_sw_dflt = False");
+                pyBuilder.addLine("_sw_cond = False");
+                pyBuilder.addLine("_sw_break = False");
+                pyBuilder.addLine("# end of switch statement for ");
                 translate(switchCmp.peek());
 
+                options.removeStack("inSwitch");
+                options.decreaseScope();
                 switchCmp.pop(); // remove ASTNode from the stack
                 break;
 
                 case "switch block statement group":
                 children = nodeStack.pop().getChildren();
+                options.increaseScope();
                 pyBuilder.append("if _sw_cond or ");
 
-                // isn't default case
                 if (children.get(0).getChildren().get(0).childCount() > 0) {
                     translate(switchCmp.peek());
                     pyBuilder.append(" == ");
                     translate(children.get(0));
                 } else {
+                    // is default case
                     pyBuilder.append("_sw_dflt");
                 }
 
@@ -408,11 +425,19 @@ public class Translator {
                 pyBuilder.increaseIndent();
                 pyBuilder.append("_sw_dflt = False");
                 pyBuilder.addLine("_sw_cond = False");
+                pyBuilder.addLine("_sw_break = False");
                 pyBuilder.newLine();
                 translate(children.get(1));
-                pyBuilder.append("_sw_cond = True");
+
+                pyBuilder.append("_sw_cond = ");
+                if (options.containsCurrent("addBreakCondition")) {
+                    pyBuilder.append("not _sw_break");
+                    options.clearCurrent("addBreakCondition");
+                } else pyBuilder.append("True");
+
                 pyBuilder.newLine();
                 pyBuilder.decreaseIndent();
+                options.decreaseScope();
                 break;
                 /** END of Switch Statement Methods */
 
@@ -509,8 +534,13 @@ public class Translator {
 
                 case "if statement":
                 children = nodeStack.pop().getChildren();
+                options.increaseScope();
+                options.add("inIf");
 
-                pyBuilder.append("if ");
+                if (!options.contains("switchBreak")) {
+                    pyBuilder.append("if ");
+                } else pyBuilder.append("if not _sw_break and ");
+
                 translate(children.get(0));
                 pyBuilder.append(":");
 
@@ -525,6 +555,8 @@ public class Translator {
                     }
                 }
 
+                options.remove("inIf");
+                options.decreaseScope();
                 break;
 
                 case "else if statement":
@@ -544,8 +576,8 @@ public class Translator {
                 
                 case "else statement":
                 children = nodeStack.pop().getChildren();
-                pyBuilder.append("else:");
 
+                pyBuilder.append("else:");
                 pyBuilder.newLine();
                 pyBuilder.increaseIndent();
                 translate(children.get(0));
@@ -554,10 +586,11 @@ public class Translator {
 
                 case "do statement":
                 children = nodeStack.pop().getChildren();
+                options.increaseScope();
+                options.addStack("inLoop");
 
                 pyBuilder.append("while True:");
                 pyBuilder.newLine();
-
                 pyBuilder.increaseIndent();
                 translate(children.get(0));
                 pyBuilder.append("if ");
@@ -565,10 +598,16 @@ public class Translator {
                 pyBuilder.append(": break");
                 pyBuilder.addLine();
                 pyBuilder.decreaseIndent();
+
+                options.removeStack("inLoop");
+                options.decreaseScope();
                 break;
 
                 case "foreach statement":
                 children = nodeStack.pop().getChildren();
+                options.increaseScope();
+                options.addStack("inLoop");
+
                 pyBuilder.append("for ");
                 translate(children.get(0));
                 pyBuilder.append(" in ");
@@ -578,12 +617,18 @@ public class Translator {
                 pyBuilder.increaseIndent();
                 translate(children.get(2));
                 pyBuilder.decreaseIndent();
+
+                options.removeStack("inLoop");
+                options.decreaseScope();
                 break;
 
                 case "for statement":
                 // it would be nice to use python for-statements eventually,
                 // though this is much simpler
                 children = nodeStack.pop().getChildren();
+                options.increaseScope();
+                options.addStack("inLoop");
+
                 translate(children.get(0));
                 if (pyBuilder.getLine() != "") pyBuilder.newLine();
                 pyBuilder.append("while ");
@@ -595,11 +640,13 @@ public class Translator {
                 translate(children.get(2));
                 pyBuilder.newLine();
                 pyBuilder.decreaseIndent();
+
+                options.removeStack("inLoop");
+                options.decreaseScope();
                 break;
 
                 case "return statement":
                 case "continue statement":
-                case "break statement":
                 case "throws statement":
                 String kw = "";
                 if(nodeStack.peek().getType() == "throws statement"){
@@ -615,6 +662,7 @@ public class Translator {
                     nodeStack.pop();
                 }
                 break;
+
                 case "prefix expression":
                 children = nodeStack.pop().getChildren();
 
@@ -653,18 +701,17 @@ public class Translator {
 
                 break;
 
-                /* 
-                case "identifier":
-                case "string_lt":
-                case "+_op":
-                case "-_op":
-                case "*_op":
-                case "/_op":
-                case "integer_lt":
-                case "decimal_lt":
-                pyBuilder.append(nodeStack.pop().getValue());
-                break;
-                */
+                case "break statement":
+                if (options.peek().equals("inSwitch")) {
+                    if (!options.contains("switchBreak")) options.add("switchBreak");
+                    options.add("addBreakCondition");       // add break condition to current scope
+                    options.add("addBreakCondition", -1);   // add break condition to previous scope
+                    pyBuilder.append("_sw_break = True");
+                    nodeStack.pop();
+                    break;
+                } else if (!options.peek().equals("inLoop")) {
+                    error("translate", "Break statement not inside loop or switch.");
+                }
 
                 default:
                 if (nodeStack.peek().getValue() != null && !nodeStack.peek().getValue().equals("")) {
