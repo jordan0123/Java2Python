@@ -1,15 +1,21 @@
+import java.util.Stack;
 import java.util.HashMap;
 import java.util.Iterator;
 
 public class HashTableSet<E> {
     private HashMap<E, Integer> hashTable;
+    private Stack<E> keyStack;
 
     public HashTableSet() {
         hashTable = new HashMap<E, Integer>();
+        keyStack = new Stack<E>();
     }
+
+    public E peek() { return keyStack.peek(); }
 
     public boolean add(E key) {
         boolean changed = false;
+        keyStack.push(key);
 
         if (hashTable.containsKey(key)) hashTable.put(key, hashTable.get(key) + 1);
         else {
@@ -31,6 +37,7 @@ public class HashTableSet<E> {
             }
         }
 
+        keyStack.pop();
         return changed;
     }
 
