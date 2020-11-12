@@ -456,6 +456,12 @@ public class Translator {
                 }
 
                 pyBuilder.append(")");
+
+                if (children.size() > 2) {
+                    pyBuilder.append(".");
+                    translate(children.get(2));
+                }
+
                 break;
 
                 case "class instance creation expression":
