@@ -50,6 +50,17 @@ public class HashTableSet<E> {
         return remove(key);
     }
 
+    // remove key from table regardless of its score
+    public boolean clear(E key) {
+        return (hashTable.remove(key) > 0);
+    }
+
+    // remove all keys regardless of their score
+    public boolean clear() {
+        hashTable.clear();
+        return true;
+    }
+
     public boolean contains(E key) {
         return hashTable.containsKey(key);
     }
