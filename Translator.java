@@ -243,6 +243,12 @@ public class Translator {
                 pyBuilder.append("[");
                 translate(children.get(1));
                 pyBuilder.append("]");
+
+                if (children.size() > 2) {
+                    pyBuilder.append(".");
+                    translate(children.get(2));
+                }
+
                 break;
 
                 case "parenthesized expression":
