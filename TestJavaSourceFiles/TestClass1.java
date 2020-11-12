@@ -15,7 +15,7 @@ private double pi = 3.14;
     public static void main(String[] args){
         System.out.println('Hello, World!');
         Circle c = new Circle(5);
-        Circle c = area();
+        System.out.println("The circles area is " + c.area());
     }
 }
 

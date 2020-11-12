@@ -18,6 +18,7 @@ public class Parser {
     private String errorMsg = null;
     private ArrayList<Comment> comments;
     private ArrayList<String> references;
+    private FirstPass fp;
     
     Parser()
     {
@@ -122,6 +123,13 @@ public class Parser {
                 System.out.print("Index: " + i + " Literal: " + print.getLiteral() + " Line: " + print.getLine());
             }
             System.out.println("");
+        }
+    }
+    // loads class reference data from FirstPass class which collects method and class info before the full parse.
+    //Loading references allows the parser to recognize classes before they have been declared in the file
+    void loadReferences(){
+        for(String key: this.fp.getClassMethods().keySet()){
+            this.references.add(key);
         }
     }
     
@@ -259,6 +267,8 @@ public class Parser {
             String fToken = lookAheadToFind(find);
             if(fToken == "class_kw")
             {
+                this.fp = new FirstPass(lexer.getSource());
+                //System.exit(0);
                 program.addChild(typeDeclarations());
             }else{
                 program.addChild(blockStatements());
