@@ -15,7 +15,6 @@ public class HashTableSet<E> {
 
     public boolean add(E key) {
         boolean changed = false;
-        keyStack.push(key);
 
         if (hashTable.containsKey(key)) hashTable.put(key, hashTable.get(key) + 1);
         else {
@@ -24,6 +23,11 @@ public class HashTableSet<E> {
         }
 
         return changed;
+    }
+
+    public boolean addStack(E key) {
+        keyStack.push(key);
+        return add(key);
     }
 
     public boolean remove(E key) {
@@ -37,8 +41,13 @@ public class HashTableSet<E> {
             }
         }
 
-        keyStack.pop();
         return changed;
+    }
+
+    public boolean removeStack(E key) {
+        // NOTE: bound to cause stack ordering issues in the future
+        keyStack.pop();
+        return remove(key);
     }
 
     public boolean contains(E key) {
