@@ -137,6 +137,8 @@ public class HashTableSet<E> {
         return contains;
     }
 
+    public boolean containsCurrent(E key) { return contains(key, currentScope); }
+
     public int size() {
         return hashTable.size();
     }
