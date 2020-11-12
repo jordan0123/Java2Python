@@ -854,25 +854,27 @@ public class Parser {
                         break;
                     case "++_op":
                     case "--_op":
-                        // if(cndExpr.childCount() > 0){
-                        //     cndExpr.addChild(postfixExpressionOp());
-                        //     validExp=true;
-                        //     lastPart = "operand";
-                        // }else{
-                        //     cndExpr.addChild(prefixExpressionOp());
-                        //     validExp=false;
-                        //     lastPart = "operator";
-                        // }
-                        
-                        if (lookAhead(1).tokenName() == "identifier") {
-                            cndExpr.addChild(prefixExpression(curTok.tokenName()));
-                            validExp = true;
-                            lastPart = "operand";
-                        } else {
-                            // operator is not paired with an identifier, which is invalid
-                            validExp = false;
-                            lastPart = "operator";
-                        }
+                         if(cndExpr.childCount() > 0){
+                             cndExpr.addChild(postfixExpressionOp());
+                             validExp=true;
+                             lastPart = "operand";
+                         }else{
+                             cndExpr.addChild(prefixExpressionOp());
+                             validExp=false;
+                             lastPart = "operator";
+                         }
+//                        System.out.println("Heyyooo here we are ");
+//                        if (lookAhead(1).tokenName() == "identifier") {
+//                            System.out.println("If baby");
+//                            cndExpr.addChild(prefixExpression(curTok.tokenName()));
+//                            validExp = true;
+//                            lastPart = "operand";
+//                        } else {
+//                            // operator is not paired with an identifier, which is invalid
+//                            System.out.println("Else baby");
+//                            validExp = false;
+//                            lastPart = "operator";
+//                        }
 
                         break;
                     case "*_op":
@@ -1206,9 +1208,10 @@ public class Parser {
     {
         enterNT("postfixExpression");
         ASTNode postfix = new ASTNode("postfix expression",null, curTok.getLine());
-        expect("identifier", false);
-        postfix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
-        nextNonSpace();
+        //expect("identifier", false);
+        //postfix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
+        //nextNonSpace();
+        postfix.addChild(conditionalExpression(operator));
         expect(operator, false);
         postfix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); //move past operator
@@ -1234,9 +1237,10 @@ public class Parser {
         expect(operator, false);
         prefix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); // advance past operator
-        expect("identifier", false);
-        prefix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
-        nextNonSpace();
+        //expect("identifier", false);
+        //prefix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
+        prefix.addChild(expression());
+        //nextNonSpace();
         exitNT("prefixExpression");
         return prefix;
     }
