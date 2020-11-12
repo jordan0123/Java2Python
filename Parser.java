@@ -220,7 +220,7 @@ public class Parser {
         }
         if (foundTok.length() < 1 && raiseError){
             List<String> exp = Arrays.asList(expTokens);
-            System.out.println("Token "+ curTok.tokenName() + " does not match any expected tokens " + exp.toString());
+            customErrorMsg("Token "+ curTok.tokenName() + " does not match any expected tokens " + exp.toString(), curTok.getLine(), curTok.getPos());
         }
         return foundTok;
     }
@@ -1133,6 +1133,7 @@ public class Parser {
         if(periodEnd){
             customErrorMsg("Error: Expecting identifier at", curTok.getLine(), curTok.getPos());
         }
+        name = name.replaceFirst("^\\.", ""); // remove leading period if necessary
         if (debug) System.out.println("The id type is " + idType);
         switch(idType)
         {
@@ -1160,10 +1161,17 @@ public class Parser {
         enterNT("arrayAccess");
         ASTNode arrAcc = new ASTNode("array access",null, curTok.getLine());
         arrAcc.addChild(new ASTNode("identifier",name, curTok.getLine()));
-        nextNonSpace(); // move past [
-        arrAcc.addChild(expression());
-        expect("]", false);
-        nextNonSpace();
+        while(curTok.tokenName() == "["){
+            nextNonSpace(); // move past [
+            arrAcc.addChild(expression());
+            expect("]", false);
+            nextNonSpace();
+        }
+        if(curTok.tokenName() == "period_lt"){
+            //nextNonSpace(); // move past .
+            arrAcc.addChild(handleIdentifier());
+        }
+        
         exitNT("arrayAccess");
         return arrAcc;
     }
@@ -1185,11 +1193,10 @@ public class Parser {
         expect(")_op", false);
         nextNonSpace(); // advance past )
         if(curTok.tokenName() == "period_lt"){
-            // another method invocation
-            expect("identifier", true);
-            String name1 = curTok.getLiteral();
-            nextNonSpace(); // advance past id
-            methInv.addChild(methodInvocation(name1));
+            nextNonSpace(); //advance past .
+            methInv.addChild(handleIdentifier());
+        }else if(curTok.tokenName() == "["){
+            methInv.addChild(arrayAccess(null));
         }
         exitNT("methodInvocation");
         return methInv;
