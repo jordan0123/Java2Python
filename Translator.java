@@ -590,6 +590,8 @@ public class Translator {
                 // it would be nice to use python for-statements eventually,
                 // though this is much simpler
                 children = nodeStack.pop().getChildren();
+                options.add("inLoop");
+
                 translate(children.get(0));
                 if (pyBuilder.getLine() != "") pyBuilder.newLine();
                 pyBuilder.append("while ");
@@ -601,6 +603,8 @@ public class Translator {
                 translate(children.get(2));
                 pyBuilder.newLine();
                 pyBuilder.decreaseIndent();
+
+                options.remove("inLoop");
                 break;
 
                 case "return statement":
@@ -621,19 +625,24 @@ public class Translator {
                     nodeStack.pop();
                 }
                 break;
+
                 case "prefix expression":
                 children = nodeStack.pop().getChildren();
 
                 if (options.contains("inConditional")) {
                     if (children.get(0).getType().equals("++_op")) {
                         foundNfix[0] = true; // found a preincrement expression requiring a function
-                        pyBuilder.append("_preinc(" + children.get(1).getValue() + ")");
+                        pyBuilder.append("_preinc(");
                     } else {
                         foundNfix[1] = true; // found a predecrement expression requiring a function
-                        pyBuilder.append("_predec(" + children.get(1).getValue() + ")");
+                        pyBuilder.append("_predec(");
                     }
+
+                    translate(children.get(1));
+                    pyBuilder.append(")");
                 } else {
-                    pyBuilder.append(children.get(1).getValue() +
+                    translate(children.get(1));
+                    pyBuilder.append(
                             ((children.get(0).getType().equals("++_op"))
                             ? " += " : " -= ") + "1");
                 }
@@ -646,13 +655,17 @@ public class Translator {
                 if (options.contains("inConditional")) {
                     if (children.get(1).getType().equals("++_op")) {
                         foundNfix[2] = true; // found a postincrement expression requiring a function
-                        pyBuilder.append("_postinc(" + children.get(0).getValue() + ")");
+                        pyBuilder.append("_postinc(");
                     } else {
                         foundNfix[3] = true; // found a postdecrement expression requiring a function
-                        pyBuilder.append("_postdec(" + children.get(0).getValue() + ")");
+                        pyBuilder.append("_postdec(");
                     }
+
+                    translate(children.get(0));
+                    pyBuilder.append(")");
                 } else {
-                    pyBuilder.append(children.get(0).getValue() +
+                    translate(children.get(0));
+                    pyBuilder.append(
                             ((children.get(1).getType().equals("++_op"))
                             ? " += " : " -= ") + "1");
                 }

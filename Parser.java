@@ -803,7 +803,7 @@ public class Parser {
         String lastPart = "";
         ASTNode lastChild;
         while(!endExp){
-            if (debug) System.out.println("The current token in conditional expression is " + curTok.tokenName());
+            if (debug) System.out.println("The current token in conditional expression is " + curTok.tokenName() + ", literal " + curTok.getLiteral());
             if(cndExpr.childCount() > 0)
             {
                 lastChild = cndExpr.getChildren().get(cndExpr.childCount() - 1);
@@ -988,11 +988,17 @@ public class Parser {
                 case "this_kw":
                 case "super_kw":
                 case "identifier":
+                /*
+                    if (lookAhead(1).tokenName().equals("[")) {
+                    }
+                */
+
                     //determine if method, field access, array access, or var
                     //keep checking for . and '[]' vs '()' vs ''\
                     primNoNew = handleIdentifier();
                     break;
                 default:
+                    if (debug) System.out.println("[" + curTok.getLiteral() + "]");
                     notImplemented("The default for switch case in PrimaryNoNewArray");
                     primNoNew = new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine());
             }
@@ -1207,8 +1213,16 @@ public class Parser {
         enterNT("postfixExpression");
         ASTNode postfix = new ASTNode("postfix expression",null, curTok.getLine());
         expect("identifier", false);
-        postfix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
-        nextNonSpace();
+
+        if (!lookAhead(1).tokenName().equals("[")) {
+            postfix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
+            nextNonSpace();
+        } else {
+            String name = curTok.getLiteral();
+            nextNonSpace();
+            postfix.addChild(arrayAccess(name));
+        }
+
         expect(operator, false);
         postfix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); //move past operator
@@ -1235,8 +1249,16 @@ public class Parser {
         prefix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); // advance past operator
         expect("identifier", false);
-        prefix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
-        nextNonSpace();
+
+        if (lookAhead(1).tokenName().equals("[")) {
+            String name = curTok.getLiteral();
+            nextNonSpace();
+            prefix.addChild(arrayAccess(name));
+        } else {
+            prefix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
+            nextNonSpace();
+        }
+
         exitNT("prefixExpression");
         return prefix;
     }
