@@ -180,12 +180,16 @@ class LexScanner{
     }
     void handleSpaces(String lexeme){
         int startPos = getPosition();
+        String next = "";
         while(lexeme.replace(" ", "").length() == 0){
             this.curLex = lexeme;
-            lexeme += sa.nextLex();
+            next = sa.nextLex();
+            lexeme += next;
         }
-        //stops sa from advancing on the next lexeme 
-        sa.haltNext(startPos);
+        //stops sa from advancing on the next lexeme if necessasry
+        if(!next.equals("EOF")){
+            sa.haltNext(startPos);
+        }
     }
     
     void handleString(String lexeme) throws Exception{

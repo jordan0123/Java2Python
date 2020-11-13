@@ -220,7 +220,7 @@ public class Parser {
         }
         if (foundTok.length() < 1 && raiseError){
             List<String> exp = Arrays.asList(expTokens);
-            System.out.println("Token "+ curTok.tokenName() + " does not match any expected tokens " + exp.toString());
+            customErrorMsg("Token "+ curTok.tokenName() + " does not match any expected tokens " + exp.toString(), curTok.getLine(), curTok.getPos());
         }
         return foundTok;
     }
@@ -803,7 +803,7 @@ public class Parser {
         String lastPart = "";
         ASTNode lastChild;
         while(!endExp){
-            if (debug) System.out.println("The current token in conditional expression is " + curTok.tokenName());
+            if (debug) System.out.println("The current token in conditional expression is " + curTok.tokenName() + ", literal " + curTok.getLiteral());
             if(cndExpr.childCount() > 0)
             {
                 lastChild = cndExpr.getChildren().get(cndExpr.childCount() - 1);
@@ -854,25 +854,27 @@ public class Parser {
                         break;
                     case "++_op":
                     case "--_op":
-                        // if(cndExpr.childCount() > 0){
-                        //     cndExpr.addChild(postfixExpressionOp());
-                        //     validExp=true;
-                        //     lastPart = "operand";
-                        // }else{
-                        //     cndExpr.addChild(prefixExpressionOp());
-                        //     validExp=false;
-                        //     lastPart = "operator";
-                        // }
-                        
-                        if (lookAhead(1).tokenName() == "identifier") {
-                            cndExpr.addChild(prefixExpression(curTok.tokenName()));
-                            validExp = true;
-                            lastPart = "operand";
-                        } else {
-                            // operator is not paired with an identifier, which is invalid
-                            validExp = false;
-                            lastPart = "operator";
-                        }
+                         if(cndExpr.childCount() > 0){
+                             cndExpr.addChild(postfixExpressionOp());
+                             validExp=true;
+                             lastPart = "operand";
+                         }else{
+                             cndExpr.addChild(prefixExpressionOp());
+                             validExp=false;
+                             lastPart = "operator";
+                         }
+//                        System.out.println("Heyyooo here we are ");
+//                        if (lookAhead(1).tokenName() == "identifier") {
+//                            System.out.println("If baby");
+//                            cndExpr.addChild(prefixExpression(curTok.tokenName()));
+//                            validExp = true;
+//                            lastPart = "operand";
+//                        } else {
+//                            // operator is not paired with an identifier, which is invalid
+//                            System.out.println("Else baby");
+//                            validExp = false;
+//                            lastPart = "operator";
+//                        }
 
                         break;
                     case "*_op":
@@ -988,11 +990,17 @@ public class Parser {
                 case "this_kw":
                 case "super_kw":
                 case "identifier":
+                /*
+                    if (lookAhead(1).tokenName().equals("[")) {
+                    }
+                */
+
                     //determine if method, field access, array access, or var
                     //keep checking for . and '[]' vs '()' vs ''\
                     primNoNew = handleIdentifier();
                     break;
                 default:
+                    if (debug) System.out.println("[" + curTok.getLiteral() + "]");
                     notImplemented("The default for switch case in PrimaryNoNewArray");
                     primNoNew = new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine());
             }
@@ -1061,6 +1069,8 @@ public class Parser {
                 case "postfix expression":
                 case "postfix expression operator":
                 case "method invocation":
+                case "array access":
+                case "field access":
                     retVal = 2;
                     break;
                 case "prefix expression operator": // case where exp after prefix has not been handled yet
@@ -1133,6 +1143,7 @@ public class Parser {
         if(periodEnd){
             customErrorMsg("Error: Expecting identifier at", curTok.getLine(), curTok.getPos());
         }
+        name = name.replaceFirst("^\\.", ""); // remove leading period if necessary
         if (debug) System.out.println("The id type is " + idType);
         switch(idType)
         {
@@ -1160,10 +1171,17 @@ public class Parser {
         enterNT("arrayAccess");
         ASTNode arrAcc = new ASTNode("array access",null, curTok.getLine());
         arrAcc.addChild(new ASTNode("identifier",name, curTok.getLine()));
-        nextNonSpace(); // move past [
-        arrAcc.addChild(expression());
-        expect("]", false);
-        nextNonSpace();
+        while(curTok.tokenName() == "["){
+            nextNonSpace(); // move past [
+            arrAcc.addChild(expression());
+            expect("]", false);
+            nextNonSpace();
+        }
+        if(curTok.tokenName() == "period_lt"){
+            //nextNonSpace(); // move past .
+            arrAcc.addChild(handleIdentifier());
+        }
+        
         exitNT("arrayAccess");
         return arrAcc;
     }
@@ -1185,11 +1203,10 @@ public class Parser {
         expect(")_op", false);
         nextNonSpace(); // advance past )
         if(curTok.tokenName() == "period_lt"){
-            // another method invocation
-            expect("identifier", true);
-            String name1 = curTok.getLiteral();
-            nextNonSpace(); // advance past id
-            methInv.addChild(methodInvocation(name1));
+            nextNonSpace(); //advance past .
+            methInv.addChild(handleIdentifier());
+        }else if(curTok.tokenName() == "["){
+            methInv.addChild(arrayAccess(null));
         }
         exitNT("methodInvocation");
         return methInv;
@@ -1199,9 +1216,10 @@ public class Parser {
     {
         enterNT("postfixExpression");
         ASTNode postfix = new ASTNode("postfix expression",null, curTok.getLine());
-        expect("identifier", false);
-        postfix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
-        nextNonSpace();
+        //expect("identifier", false);
+        //postfix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
+        //nextNonSpace();
+        postfix.addChild(conditionalExpression(operator));
         expect(operator, false);
         postfix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); //move past operator
@@ -1227,9 +1245,10 @@ public class Parser {
         expect(operator, false);
         prefix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); // advance past operator
-        expect("identifier", false);
-        prefix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
-        nextNonSpace();
+        //expect("identifier", false);
+        //prefix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
+        prefix.addChild(expression());
+        //nextNonSpace();
         exitNT("prefixExpression");
         return prefix;
     }
