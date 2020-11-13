@@ -209,6 +209,7 @@ public class Translator {
                     pyBuilder.append("if not _sw_break:");
                     pyBuilder.newLine();
                     pyBuilder.increaseIndent();
+                    options.addGlobal("breakIndent");
                     options.clearCurrent("addBreakCondition");
                 }
 
@@ -442,7 +443,8 @@ public class Translator {
                 } else pyBuilder.append("True");
 
                 pyBuilder.newLine();
-                pyBuilder.decreaseIndent();
+                pyBuilder.decreaseIndent(1 + options.getGlobal("breakIndent"));
+                options.clear("breakIndent");
                 options.decreaseScope();
                 break;
                 /** END of Switch Statement Methods */
@@ -599,6 +601,7 @@ public class Translator {
 
                 case "else if statement":
                 children = nodeStack.pop().getChildren();
+                options.clearCurrent("addBreakCondition");
 
                 pyBuilder.append("elif ");
                 translate(children.get(0));
@@ -614,6 +617,7 @@ public class Translator {
                 
                 case "else statement":
                 children = nodeStack.pop().getChildren();
+                options.clearCurrent("addBreakCondition");
 
                 pyBuilder.append("else:");
                 pyBuilder.newLine();
