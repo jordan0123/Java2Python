@@ -17,9 +17,11 @@ class LexScanner{
     private JavaToken curJavaToken; // current java token
     private int curTokCode; // current token code
     private int lastPos; //last position
+    private String source; //source code to tokenize
     
     // Constructor: Feeds source code to SourceArray 
     LexScanner(String source) throws Exception{
+        this.source = source;
         sa = new SourceArray(source); //initialize data structure to store source code
         tokType = initTokenTypes(); //initialize keyword/operator table
     }
@@ -350,5 +352,8 @@ class LexScanner{
     int getPosition(){
         return sa.currentPos();
     }
-    
+    // returns source code intact as a string
+    String getSource(){
+        return this.source;
+    }
 }

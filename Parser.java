@@ -18,6 +18,7 @@ public class Parser {
     private String errorMsg = null;
     private ArrayList<Comment> comments;
     private ArrayList<String> references;
+    private FirstPass fp;
     
     Parser()
     {
@@ -124,7 +125,32 @@ public class Parser {
             System.out.println("");
         }
     }
+    // loads class reference data from FirstPass class which collects method and class info before the full parse.
+    //Loading references allows the parser to recognize classes before they have been declared in the file
+    void loadReferences(){
+        for(String key: this.fp.getClassMethods().keySet()){
+            this.references.add(key);
+        }
+    }
+    // returns a map of classes and their respective methods
+    HashMap<String, String[]> getClassMethods(){
+        return this.fp.getClassMethods();
+    }
     
+    boolean classHasMethod(String className, String methodName){
+        if(this.fp.getClassMethods().containsKey(className)){
+            String[] methods = this.fp.getClassMethods().get(className);
+            for(String method: methods){
+                if(method.equals(methodName)){
+                    return true;
+                }
+            }
+            return false;
+        }else{
+            return false;
+        }
+        
+    }
     // Identifies when a non-implemented function would be called during parse and exit
     // used for tagging parts of code that are not implement
     // i.e. need to call statement but it's not implemented yet
@@ -259,6 +285,8 @@ public class Parser {
             String fToken = lookAheadToFind(find);
             if(fToken == "class_kw")
             {
+                this.fp = new FirstPass(lexer.getSource());
+                //System.exit(0);
                 program.addChild(typeDeclarations());
             }else{
                 program.addChild(blockStatements());
