@@ -30,6 +30,16 @@ public class HashTableSet<E> {
 
     public E peek() { return keyStack.peek(); }
 
+    public int get(E key, int index) {
+        if (hashTable.get(index).containsKey(key)) {
+            return hashTable.get(index).get(key);
+        } else return 0;
+    }
+
+    public int getGlobal(E key) {
+        return get(key, 0);
+    }
+
     public boolean add(E key, int index) {
         if (index < 0) index = currentScope + index;
 
