@@ -882,7 +882,7 @@ public class Parser {
                         break;
                     case "++_op":
                     case "--_op":
-                         if(cndExpr.childCount() > 0){
+                         if(cndExpr.childCount() > 0 && lastPart == "operand"){
                              cndExpr.addChild(postfixExpressionOp());
                              validExp=true;
                              lastPart = "operand";
@@ -942,13 +942,13 @@ public class Parser {
                         endExp = true;
                         break;
                     
-                    case "identifier":
-                    if (lookAhead(1).tokenName() == "++_op" || lookAhead(1).tokenName() == "--_op") {
-                        cndExpr.addChild(postfixExpression(lookAhead(1).tokenName()));
-                        lastPart = "operand";
-                        validExp=true;
-                        break;
-                    }
+//                    case "identifier":
+//                    if (lookAhead(1).tokenName() == "++_op" || lookAhead(1).tokenName() == "--_op") {
+//                        cndExpr.addChild(postfixExpression(lookAhead(1).tokenName()));
+//                        lastPart = "operand";
+//                        validExp=true;
+//                        break;
+//                    }
 
                     default:
                         //Some primary (field access, array access, method, literal, etc)
