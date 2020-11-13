@@ -425,23 +425,49 @@ public class Translator {
                 case "conditional expression":
                 options.add("inConditional");
                 boolean stringUpcast = nodeStack.peek().contains("string_lt");
-                boolean exempt = false; // exempt from upcasting (is string or operator)?
+                boolean exempt = false;     // exempt from upcasting (is string or operator)?
+                boolean isPostfix = false;  // is this a postfix expression?
                 children = nodeStack.pop().getChildren();
 
-                for (ASTNode child : children) {
-                    exempt = (child.getType().equals("string_lt"))
-                          || (child.getType().matches("(.*)expression"))
-                          && (!child.getType().matches("parenthesized(.*)"));
+                for (int i = 0; i < children.size(); i++) {
+                    ASTNode child = children.get(i);
+                    ASTNode pChild = null;
 
-                    if (stringUpcast && !exempt)
-                        pyBuilder.append("str(");
+                    if (!child.getType().matches("postfix expr(.*)")) {
+                        exempt = (child.getType().equals("string_lt"))
+                              || (child.getType().matches("(.*)expression"))
+                              && (!child.getType().matches("parenthesized(.*)"))
+                              && (!child.getType().matches("prefix expr(.*)"));
+                        
+                        isPostfix = (i + 1 < children.size())
+                                 && (children.get(i+1).getType().matches("postfix expr(.*)"));
 
-                    translate(child);
+                        if (isPostfix) {
+                            pChild = children.get(i+1);
+                        }
 
-                    if (stringUpcast && !exempt)
-                        pyBuilder.append(")");
+                        if (stringUpcast && !exempt)
+                            pyBuilder.append("str(");
 
-                    pyBuilder.append(" ");
+                        if (child.getType().matches("prefix expr(.*)")) {
+                            if (child.getChildren().get(0).getType().equals("++_op")) {
+                                pyBuilder.append("_preinc('");
+                            } else pyBuilder.append("_predec('");
+                            translate(children.get(++i));
+                            pyBuilder.append("')");
+                        } else if (isPostfix) {
+                            if (pChild.getChildren().get(0).getType().equals("++_op")) {
+                                pyBuilder.append("_postinc('");
+                            } else pyBuilder.append("_postdec('");
+                            translate(child);
+                            pyBuilder.append("')");
+                        } else translate(child);
+
+                        if (stringUpcast && !exempt)
+                            pyBuilder.append(")");
+
+                        pyBuilder.append(" ");
+                    }
                 }
 
                 // remove trailing space...
