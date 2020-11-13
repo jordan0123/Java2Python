@@ -1,50 +1,44 @@
-int a = 2;
-int b = 4;
-
-int c[] = new int[4];
-c[0] = 2;
-c[1] = 6;
+int a = 1;
+int b = 2; // do not change
+int c = 3; // do not change
 
 switch (a) {
     case 1:
-    System.out.println("Hello!");
+    b = 5;
     case 2:
-    a = 5;
-    break;
-    case 4:
-    switch (b) {
-        case 4:
-        a = 6;
+    case 3:
+    c = 10;
+    if (b == 5) { break; }
+
+    case 9:
+    b = 2;
+    switch (c) {
+        case 10:
+        a += 3; // a should be 5 or 6 here
+        if (a == 6) { break; }
+        b = 1;
         break;
-        case c[2]:
-        a = 2;
-        if (c[2] == 7) { c[2] = 3; }
-        case 6:
-        if (a == 2) { break; break; }
-        if (a == 3) {
-            if (b == 2) {
-                break;
-            }
-        } else if (a == 4) {
-            if (b == 4) {
-                break;
-            } else {
-                b = 3;
-            }
+        case 20:
+        if (a == 5) {
+            b = 5;
+            c = 70;
+        } else if (a == 6) {
+            b = 20;
+            c = 30;
+            break;
         } else {
-            a -= 3;
-            if (a == 6) {
-                break;
-            }
+            c = 22;
         }
-        b = 2;
-        break;
-        default:
-        a = 9;
+
+        b = 10;
     }
-    a = 2;
-    case 5:
-    a = 3;
+    break;
+
+    default:
+    a = 7; b = 7; c = 7;
 }
 
-System.out.println(a);
+System.out.println(a + ", " + b + ", " + c);
+// a = 1 (1, 5, 10)
+// a = 2 (5, 2, 10)
+// a = 3 (6, 1, 10)
