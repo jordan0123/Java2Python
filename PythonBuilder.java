@@ -77,20 +77,28 @@ public class PythonBuilder {
         } else return true;
     }
 
-    void increaseIndent(int indentIndex) {
-        indentList.set(indentIndex, indentList.get(indentIndex) + 1);
+    void increaseIndent(int indentIndex, int offset) {
+        indentList.set(indentIndex, indentList.get(indentIndex) + offset);
     }
 
-    void decreaseIndent(int indentIndex) {
-        indentList.set(indentIndex, indentList.get(indentIndex) - 1);
+    void decreaseIndent(int indentIndex, int offset) {
+        indentList.set(indentIndex, indentList.get(indentIndex) - offset);
+    }
+
+    void increaseIndent(int offset) {
+        increaseIndent(cursor, offset);
+    }
+
+    void decreaseIndent(int offset) {
+        decreaseIndent(cursor, offset);
     }
 
     void increaseIndent() {
-        increaseIndent(cursor);
+        increaseIndent(cursor, 1);
     }
 
     void decreaseIndent() {
-        decreaseIndent(cursor);
+        decreaseIndent(cursor, 1);
     }
 
     void addSourceLine(int lineNumber) {
