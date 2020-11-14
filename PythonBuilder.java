@@ -195,20 +195,18 @@ public class PythonBuilder {
     }
 
     String getSource() {
-        String source = "";
-        String l;
-
+        StringBuilder source = new StringBuilder("");
         int indent = 0;
+
         for (String s : getLines()) {
-            l = "";
             for (int i = 0; i < 4*indentList.get(indent); i++) {
-                l += ' ';
+                source.append(' ');
             }
 
-            source += l + s + '\n';
-            indent++;
+            source.append(s).append('\n');
+            indent += 1;
         }
 
-        return source;
+        return source.toString();
     }
 }
