@@ -250,6 +250,7 @@ public class Translator {
                 for (ASTNode child : children) pyBuilder.append("[");
                 pyBuilder.append("None]");
 
+                Collections.reverse(children);
                 for (ASTNode child : children.subList(0, children.size()-1)) {
                     pyBuilder.append(" * ");
                     translate(child);
