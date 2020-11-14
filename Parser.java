@@ -525,7 +525,7 @@ public class Parser {
 		{
 			errorMsg("type", curTok.getLine(), curTok.getPos());
         }
-        ASTNode retVal = null;
+        ASTNode varType = null;
         String typeLit = curTok.getLiteral(); // saves type info
         String ASTName = ""; // to save name of the node
         if(references.contains(typeLit)){
@@ -536,16 +536,15 @@ public class Parser {
         nextNonSpace(); //advance past type
         if(curTok.tokenCode() == 2003) // open [
         {
-            expect("]", true); // advances again checking for ]
             ASTName = ASTName + " array";
-            retVal = new ASTNode(ASTName,typeLit, curTok.getLine());
-            nextNonSpace(); //advance past ]
+            varType = new ASTNode(ASTName,typeLit, curTok.getLine());
+            varType.addChild(dims());
         }
         else{
-            retVal = new ASTNode(ASTName,typeLit, curTok.getLine());
+            varType = new ASTNode(ASTName,typeLit, curTok.getLine());
         }
         exitNT("type");
-        return retVal;
+        return varType;
     }
     
 	/*
@@ -609,9 +608,8 @@ public class Parser {
         // check if array identifier looking for '['
 		if(curTok.tokenCode() == 2003 ) // [
         {
-            expect("]", true); // advances again checking for ]
             varDecID = new ASTNode("array identifier",id, curTok.getLine());
-            nextNonSpace(); //advance past ]
+            varDecID.addChild(dims());
         }
         else
         {
