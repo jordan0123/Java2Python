@@ -214,7 +214,7 @@ public class Translator {
                 }
 
                 translate(nodeStack.pop().getChildren().get(0));
-                if (pyBuilder.getLine() != "") pyBuilder.newLine();
+                if (!pyBuilder.getLine().equals("")) pyBuilder.newLine();
                 break;
 
                 case "local variable declaration":
@@ -676,7 +676,7 @@ public class Translator {
                 options.addStack("inLoop");
 
                 translate(children.get(0));
-                if (pyBuilder.getLine() != "") pyBuilder.newLine();
+                if (!pyBuilder.getLine().equals("")) pyBuilder.newLine();
                 pyBuilder.append("while ");
                 translate(children.get(1));
                 pyBuilder.append(":");

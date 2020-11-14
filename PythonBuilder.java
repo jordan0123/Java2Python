@@ -5,11 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class PythonBuilder {
-    ArrayList<String> sourceList;   // list of lines
-    ArrayList<Integer> indentList;  // list of line indents
-
-    String current;                 // current line
-
     private int cursor = 0;         // line location where cursor is at
     private int indentFactor = 0;   // factor in which to indent a line
     private int numLines = 0;       // number of lines currently committed
@@ -17,29 +12,26 @@ public class PythonBuilder {
 
     private int lineUID = 0;        // UID for line position
 
+    ArrayList<StringBuilder> sourceList;    // list of lines
+    ArrayList<Integer> indentList;          // list of line indents
+
     HashMap<Integer, Integer> lineTabs;     // tabulations for line positioning
     HashMap<Integer, Integer> lineMap;      // maps line in source-file to logical line
 
     PythonBuilder() {
-        sourceList = new ArrayList<String>();
+        sourceList = new ArrayList<StringBuilder>();
         indentList = new ArrayList<Integer>();
         lineTabs = new HashMap<Integer, Integer>();
         lineMap = new HashMap<Integer, Integer>();
 
-        sourceList.add("");
+        sourceList.add(new StringBuilder(""));
         indentList.add(0);
-        current = "";
     }
 
     int size() { return sourceList.size(); }
 
-    int getCursor() {
-        return cursor;
-    }
-
-    void setCursor(int cursor) {
-        this.cursor = cursor;
-    }
+    int getCursor() { return cursor; }
+    void setCursor(int cursor) { this.cursor = cursor; }
 
     // tabulate line number
     //   returns index to lineTab where lineNumber is stored
@@ -49,26 +41,20 @@ public class PythonBuilder {
     }
 
     // tabulates current line
-    int tabLine() {
-        return tabLine(cursor);
-    }
+    int tabLine() { return tabLine(cursor); }
 
     // get line tabulator
-    int getLineTab(int tabIndex) {
-        return lineTabs.get(tabIndex);
-    }
+    int getLineTab(int tabIndex) { return lineTabs.get(tabIndex); }
 
     // destroys line tabulator
     //   using this is good practice after tabulator is no longer needed
-    void destroyLineTab(int tabIndex) {
-        lineTabs.remove(tabIndex);
-    }
+    void destroyLineTab(int tabIndex) { lineTabs.remove(tabIndex); }
 
     boolean isEmpty() {
         if (sourceList.size() != 0) {
             boolean allStringsEmpty = true;
 
-            for (String s : sourceList) {
+            for (StringBuilder s : sourceList) {
                 allStringsEmpty = s.length() == 0;
                 if (!allStringsEmpty) break;
             }
@@ -115,12 +101,10 @@ public class PythonBuilder {
     }
 
     // append to current line
-    void append(String app) {
-        sourceList.set(cursor, sourceList.get(cursor)+app);
-    }
+    void append(String app) { sourceList.get(cursor).append(app); }
 
     void addLine(String line, int location) {
-        sourceList.add(location, line);
+        sourceList.add(location, new StringBuilder(line));
         indentList.add(location, (location-1>-1) ? indentList.get(location-1) : 0);
 
         for (int i : lineTabs.keySet()) {
@@ -155,16 +139,10 @@ public class PythonBuilder {
         for (int i = 0; i < repeat; i++) newLine();
     }
 
-    // add contents of current line to source
-    void addCurrent() {
-        addLine(current);
-        current = "";
-    }
-
     void subLine(int cursor, int beg, int end) {
-        String line = sourceList.get(cursor);
+        StringBuilder line = sourceList.get(cursor);
         if (end < 0) end = line.length() + end;
-        sourceList.set(cursor, line.substring(beg, end));
+        sourceList.set(cursor, new StringBuilder(line.substring(beg, end)));
     }
 
     void subLine(int beg, int end) {
@@ -199,19 +177,17 @@ public class PythonBuilder {
     }
 
     String getLine() {
-        return sourceList.get(cursor);
+        return sourceList.get(cursor).toString();
     }
 
     ArrayList<String> getLines() {
-        return sourceList;
-    }
-
-    void clearCurrent() {
-        current = "";
+        ArrayList<String> stringArray = new ArrayList<String>();
+        for (StringBuilder s : sourceList) { stringArray.add(s.toString()); }
+        return stringArray;
     }
 
     String getLine(int lineIndex) {
-        return sourceList.get(lineIndex);
+        return sourceList.get(lineIndex).toString();
     }
 
     String getCurrent() {
@@ -223,7 +199,7 @@ public class PythonBuilder {
         String l;
 
         int indent = 0;
-        for (String s : sourceList) {
+        for (String s : getLines()) {
             l = "";
             for (int i = 0; i < 4*indentList.get(indent); i++) {
                 l += ' ';
@@ -232,8 +208,6 @@ public class PythonBuilder {
             source += l + s + '\n';
             indent++;
         }
-
-        //if (current != "") source += current + '\n';
 
         return source;
     }
