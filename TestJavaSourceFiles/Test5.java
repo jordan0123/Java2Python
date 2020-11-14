@@ -7,7 +7,7 @@ class PythonBuild {
         this.hello = 3;
     }
 
-    int getHello() { return hello; }
+    int getHello() { return this.hello; }
 }
 
 class HelloWorld {
