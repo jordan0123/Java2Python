@@ -25,6 +25,11 @@ public class Parser {
         this.buffer = new ArrayList<JavaToken>();
         this.comments = new ArrayList<Comment>();
         this.references = new ArrayList<String>();
+        
+        // pre-defined classes to be recognized
+        String[] class_names = { "Exception", "ArithmeticException" };
+        this.references.addAll(Arrays.asList(class_names));
+        
         initModifiers();
     }
 	
@@ -449,7 +454,7 @@ public class Parser {
                 notImplemented("synchronized statement");
                 break;
             case "try_kw":
-                notImplemented("try statement");
+            	stmnt.addChild(tryStatement());
                 break;
             default:
                 //with everything else weeded out. It's either an <expression statement> or a <labeled statement>. Let's worry about <labeled statement> some other time.
@@ -1612,6 +1617,64 @@ public class Parser {
         expect(")_op", false);
         expect("open_bracket_lt", true);
         return exp;
+    }
+    
+    ASTNode tryStatement() throws Exception
+    {
+    	enterNT("tryStatement");
+    	ASTNode tryStmnt = new ASTNode("try statement", null, curTok.getLine());
+    	expect("try_kw", false);
+    	expect("open_bracket_lt", true);
+    	//nextNonSpace();
+    	tryStmnt.addChild(block());
+    	tryStmnt.addChild(catches());
+    	
+    	if (curTok.tokenCode == 1042) // finally_kw
+    	{
+    		tryStmnt.addChild(tryFinally());
+    	}
+    	
+    	exitNT("tryStatement");
+    	return tryStmnt;
+    }
+    
+    ASTNode catches() throws Exception
+    {
+    	enterNT("catches");
+    	ASTNode cat = new ASTNode("catches", null, curTok.getLine());
+    	while (curTok.tokenCode == 1031) // catch_kw
+    	{
+    		cat.addChild(catchClause());
+    	}
+    	exitNT("catches");
+    	return cat;
+    }
+
+    ASTNode catchClause() throws Exception
+    {
+    	enterNT("catchClause");
+    	ASTNode catch_clause = new ASTNode("catch clause", null, curTok.getLine());
+    	expect("catch_kw", false);
+    	expect("(_op", true);
+    	nextNonSpace(); // move past (
+    	catch_clause.addChild(formalParameter());
+    	expect(")_op", false);
+    	expect("open_bracket_lt", true);
+    	catch_clause.addChild(block());
+    	//expect("close_bracket_lt", false); // block already does this
+    	exitNT("catchClause");
+    	return catch_clause;
+    }
+    
+    ASTNode tryFinally() throws Exception
+    {
+    	enterNT("tryFinally");
+    	expect("finally_kw", false);
+    	ASTNode try_finally = new ASTNode("try finally", null, curTok.getLine());
+    	expect("open_bracket_lt", true);
+    	try_finally.addChild(block());
+    	exitNT("tryFinally");
+    	return try_finally;
     }
 
     ASTNode forStatement() throws Exception
