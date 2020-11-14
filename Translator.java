@@ -242,8 +242,22 @@ public class Translator {
 
                 case "array creation expression":
                 children = nodeStack.pop().getChildren();
-                pyBuilder.append("[None] * ");
                 translate(children.get(1));
+                break;
+
+                case "dim expressions":
+                children = nodeStack.pop().getChildren();
+                for (ASTNode child : children) pyBuilder.append("[");
+                pyBuilder.append("None]");
+
+                for (ASTNode child : children.subList(0, children.size()-1)) {
+                    pyBuilder.append(" * ");
+                    translate(child);
+                    pyBuilder.append("]");
+                }
+
+                pyBuilder.append(" * ");
+                translate(children.get(children.size()-1));
                 break;
 
                 case "array access":
@@ -253,9 +267,15 @@ public class Translator {
                 translate(children.get(1));
                 pyBuilder.append("]");
 
-                if (children.size() > 2) {
-                    pyBuilder.append(".");
-                    translate(children.get(2));
+                for (ASTNode child : children.subList(2, children.size())) {
+                    if (child.getType().equals("expression")) {
+                        pyBuilder.append("[");
+                        translate(child);
+                        pyBuilder.append("]");
+                    } else {
+                        pyBuilder.append(".");
+                        translate(child);
+                    }
                 }
 
                 break;
