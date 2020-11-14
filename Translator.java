@@ -639,9 +639,9 @@ public class Translator {
                 pyBuilder.newLine();
                 pyBuilder.increaseIndent();
                 translate(children.get(0));
-                pyBuilder.append("if ");
+                pyBuilder.append("if not (");
                 translate(children.get(1));
-                pyBuilder.append(": break");
+                pyBuilder.append("): break");
                 pyBuilder.addLine();
                 pyBuilder.decreaseIndent();
 
