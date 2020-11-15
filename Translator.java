@@ -410,7 +410,9 @@ public class Translator {
                  *  - remove trailing _sw_cond toggle after a lone break statement
                 */
                 case "switch statement":
-                notImplemented("translate", "switch statement");
+                // NOTE: still technically unfinished as no tests have been done.
+                // notImplemented("translate", "switch statement");
+
                 options.increaseScope();
                 options.addStack("inSwitch");
                 children = nodeStack.pop().getChildren();
