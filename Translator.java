@@ -712,6 +712,39 @@ public class Translator {
                 options.decreaseScope();
                 break;
 
+                case "try statement":
+                children = nodeStack.pop().getChildren();
+                pyBuilder.append("try:");
+                pyBuilder.newLine();
+                pyBuilder.increaseIndent();
+                translate(children.get(0));
+                pyBuilder.decreaseIndent();
+
+                for (ASTNode child : children.subList(1, children.size())) {
+                    translate(child);
+                }
+
+                break;
+
+                case "catch clause":
+                children = nodeStack.pop().getChildren();
+                pyBuilder.append("catch ");
+                translate(children.get(0).getChildren().get(1));
+                pyBuilder.append(":");
+                pyBuilder.newLine();
+                pyBuilder.increaseIndent();
+                translate(children.get(1));
+                pyBuilder.decreaseIndent();
+                break;
+
+                case "try finally":
+                pyBuilder.append("finally:");
+                pyBuilder.newLine();
+                pyBuilder.increaseIndent();
+                translate(nodeStack.pop().getChildren().get(0));
+                pyBuilder.decreaseIndent();
+                break;
+
                 case "return statement":
                 case "continue statement":
                 case "throws statement":
