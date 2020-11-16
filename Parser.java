@@ -1699,6 +1699,8 @@ public class Parser {
             isForEach = lookAhead(1).tokenName() == "identifier"
                         && lookAhead(2).tokenName() == "colon_lt";
         }
+
+        if (debug && isForEach) System.out.println("Is a foreach statement.");
         // END check for colon token**
 
         if (isForEach) {
