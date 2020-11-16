@@ -573,9 +573,9 @@ public class Translator {
 
                 pyBuilder.append(")");
 
-                if (children.size() > 2) {
-                    pyBuilder.append(".");
-                    translate(children.get(2));
+                for (ASTNode child : children.subList(2, children.size())) {
+                    if (!child.getType().equals("array access")) pyBuilder.append(".");
+                    translate(child);
                 }
 
                 break;
