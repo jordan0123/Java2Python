@@ -274,12 +274,21 @@ public class Translator {
 
                 case "array access":
                 children = nodeStack.pop().getChildren();
+                ASTNode lastChild = children.get(children.size()-1);
+
+                boolean lenMethod =
+                    (lastChild.getType().equals("field access")
+                    &&  lastChild.getValue().equals("length")); 
+
+                if (lenMethod) pyBuilder.append("len(");
+
                 translate(children.get(0));
                 pyBuilder.append("[");
                 translate(children.get(1));
                 pyBuilder.append("]");
 
-                for (ASTNode child : children.subList(2, children.size())) {
+                int endIndex = children.size() + ((lenMethod) ? -1 : 0);
+                for (ASTNode child : children.subList(2, endIndex)) {
                     if (child.getType().equals("expression")) {
                         pyBuilder.append("[");
                         translate(child);
@@ -290,6 +299,7 @@ public class Translator {
                     }
                 }
 
+                if (lenMethod) pyBuilder.append(")");
                 break;
 
                 case "parenthesized expression":
@@ -851,6 +861,22 @@ public class Translator {
                 }
 
                 break;
+
+                case "field access":
+                ArrayList<String> field = new ArrayList<String>(Arrays.asList(nodeStack.pop().getValue().split("\\.")));
+                if (debug) System.out.println("Field: " + field);
+                if (field.size() > 1) {
+                    for (String idnt : field.subList(0, field.size()-2)) {
+                        pyBuilder.append(idnt + ".");
+                    }
+
+                    if (field.get(field.size()-1).equals("length")) {
+                        pyBuilder.append("len(" + field.get(field.size()-2) + ")");
+                    } else pyBuilder.append(field.get(field.size()-2) + "." + field.get(field.size()-1));
+                } else if (field.size() > 0) pyBuilder.append(field.get(0));
+
+                break;
+
 
                 case "break statement":
                 if (options.peek().equals("inSwitch")) {
