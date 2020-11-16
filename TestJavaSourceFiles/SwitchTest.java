@@ -9,7 +9,6 @@ class SwitchTest {
             case 1:
             b = 5;
             case 2:
-            b = b;
             case 3:
             c = 10;
             if (b == 5) { break; }

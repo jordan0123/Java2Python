@@ -447,8 +447,14 @@ public class Translator {
                 pyBuilder.append("if _sw_cond or ");
 
                 if (children.get(0).getChildren().get(0).childCount() > 0) {
-                    pyBuilder.append(switchCmp.peek() + " == ");
-                    translate(children.get(0));
+                    if (children.get(0).childCount() > 1) {
+                        pyBuilder.append(switchCmp.peek() + " in {");
+                        translate(children.get(0));
+                        pyBuilder.append("}");
+                    } else {
+                        pyBuilder.append(switchCmp.peek() + " == ");
+                        translate(children.get(0));
+                    }
                 } else {
                     // is default case
                     pyBuilder.append("_sw_dflt");
@@ -473,6 +479,20 @@ public class Translator {
                 pyBuilder.decreaseIndent(1 + options.getGlobal("breakIndent"));
                 options.clear("breakIndent");
                 options.decreaseScope();
+                break;
+
+                case "switch labels":
+                children = nodeStack.pop().getChildren();
+
+                if (children.size() > 0) {
+                    for (ASTNode child : children) {
+                        translate(child);
+                        pyBuilder.append(", ");
+                    }
+
+                    pyBuilder.backspace(2);
+                }
+
                 break;
                 /** END of Switch Statement Methods */
 
