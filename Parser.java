@@ -804,6 +804,10 @@ public class Parser {
         find.add("EOF");
         find.add("colon_lt");
         find.add("semi_colon_lt");
+        find.add(")_op");
+        find.add("open_bracket_lt");
+        find.add("close_bracket_lt");
+        
         String fToken = lookAheadToFind(find);
         if(debug) System.out.println("The fToken is " + fToken);
         if(Arrays.asList(assOps).contains(fToken))
