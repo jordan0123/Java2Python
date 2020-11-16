@@ -156,6 +156,14 @@ public class Parser {
         }
         
     }
+    
+    int classMethodCount(String className){
+        if(this.fp.getClassMethods().containsKey(className)){
+            return this.fp.getClassMethods().get(className).length;
+        }else{
+            return 0;
+        }
+    }
     // Identifies when a non-implemented function would be called during parse and exit
     // used for tagging parts of code that are not implement
     // i.e. need to call statement but it's not implemented yet
@@ -807,6 +815,7 @@ public class Parser {
         find.add(")_op");
         find.add("open_bracket_lt");
         find.add("close_bracket_lt");
+        find.add("comma_lt");
         
         String fToken = lookAheadToFind(find);
         if(debug) System.out.println("The fToken is " + fToken);
