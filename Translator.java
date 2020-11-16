@@ -251,14 +251,25 @@ public class Translator {
                 pyBuilder.append("None]");
 
                 Collections.reverse(children);
-                for (ASTNode child : children.subList(0, children.size()-1)) {
+
+                if (children.size() > 1) {
+                    boolean isMultiplier = true; // otherwise, range
+                    for (ASTNode child : children.subList(0, children.size())) {
+                        if (isMultiplier) {
+                            pyBuilder.append(" * ");
+                            translate(child);
+                            isMultiplier = false;
+                        } else {
+                            pyBuilder.append(" for i in range(");
+                            translate(child);
+                            pyBuilder.append(")]");
+                        }
+                    }
+                } else {
                     pyBuilder.append(" * ");
-                    translate(child);
-                    pyBuilder.append("]");
+                    translate(children.get(children.size()-1));
                 }
 
-                pyBuilder.append(" * ");
-                translate(children.get(children.size()-1));
                 break;
 
                 case "array access":
