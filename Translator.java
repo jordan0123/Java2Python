@@ -525,14 +525,24 @@ public class Translator {
 
                         if (child.getType().matches("prefix expr(.*)")) {
                             if (child.getChildren().get(0).getType().equals("++_op")) {
+                                foundNfix[0] = true; // found prefix increment
                                 pyBuilder.append("_preinc('");
-                            } else pyBuilder.append("_predec('");
+                            } else {
+                                foundNfix[1] = true; // found prefix decrement
+                                pyBuilder.append("_predec('");
+                            }
+
                             translate(children.get(++i));
                             pyBuilder.append("')");
                         } else if (isPostfix) {
                             if (pChild.getChildren().get(0).getType().equals("++_op")) {
+                                foundNfix[2] = true; // found postfix increment
                                 pyBuilder.append("_postinc('");
-                            } else pyBuilder.append("_postdec('");
+                            } else {
+                                foundNfix[3] = true; // found postfix decrement
+                                pyBuilder.append("_postdec('");
+                            }
+
                             translate(child);
                             pyBuilder.append("')");
                         } else translate(child);
