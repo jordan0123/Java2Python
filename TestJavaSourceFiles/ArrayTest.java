@@ -15,12 +15,14 @@ class ArrayTest {
             index++;
         }
 
+        // print single-dim i
         System.out.print("i: [");
         for (int l = 0; l < 5; l++) {
             System.out.print(i[l]);
             if (l+1 < 5) { System.out.print(", "); }
         } System.out.println("]");
 
+        // print double-dim j
         System.out.print("j: [");
         for (int l = 0; l < 5; l++) {
             System.out.print("[");
@@ -29,6 +31,21 @@ class ArrayTest {
                 if (m+1 < 3) { System.out.print(", "); }
             } System.out.print("]");
 
+            if (l+1 < 5) { System.out.print(", "); }
+        } System.out.println("]");
+
+        // print triple-dim k
+        System.out.print("k: [");
+        for (int l = 0; l < 5; l++) {
+            System.out.print("[");
+            for (int m = 0; m < 4; m++) {
+                System.out.print("[");
+                for (int o = 0; o < 2; o++) {
+                    System.out.print(k[l][m][o]);
+                    if (o+1 < 2) { System.out.print(", "); }
+                } System.out.print("]");
+                if (m+1 < 4) { System.out.print(", "); }
+            } System.out.print("]");
             if (l+1 < 5) { System.out.print(", "); }
         } System.out.println("]");
     }
