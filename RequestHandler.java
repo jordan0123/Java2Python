@@ -12,7 +12,7 @@ public class RequestHandler {
     	// Set up translator
         LexScanner l = new LexScanner(source);
         Parser p = new Parser();
-        Translator t = new Translator();
+        Translator t = new Translator(p);
         p.setLexer(l);
         p.setDebug(false);
         p.setPrintTree(false);

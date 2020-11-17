@@ -10,6 +10,7 @@ import java.util.HashMap;
 
 
 public class Translator {
+    private Parser parser;
     private PythonBuilder pyBuilder;
 
     private Set<String> idList;
@@ -32,7 +33,8 @@ public class Translator {
     // - in the order of pre(inc, dec), post(inc, dec)
     private boolean[] foundNfix;
 
-    Translator() {
+    Translator(Parser parser) {
+        this.parser = parser;
         pyBuilder = new PythonBuilder();
         options = new HashTableSet<String>();
         switchCmp = new Stack<String>();
@@ -317,6 +319,7 @@ public class Translator {
                  */
                 case "class declaration":
                 children = nodeStack.pop().getChildren();
+                String cName = children.get(1).getValue();
                 pyBuilder.append("class ");
 
                 if (!(children.get(0).childCount() > 0) || !children.get(0).getChildren().get(0).getType().equals("public_kw")) {
@@ -326,9 +329,19 @@ public class Translator {
                     //pyBuilder.append("_");
                 }
                 
-                pyBuilder.append(children.get(1).getValue() + ":");
+                pyBuilder.append(cName + ":");
                 pyBuilder.newLine();
                 pyBuilder.increaseIndent();
+
+                if (!parser.classHasMethod(cName, cName)) {
+                    pyBuilder.append("def " + cName + "(self):");
+                    pyBuilder.newLine();
+                    pyBuilder.increaseIndent();
+                    pyBuilder.append("pass");
+                    pyBuilder.newLine();
+                    pyBuilder.decreaseIndent();
+                }
+
                 translate(children.get(2));
                 pyBuilder.decreaseIndent();
                 break;

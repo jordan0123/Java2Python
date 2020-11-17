@@ -23,12 +23,14 @@ public class TranslatorTest {
         // Set up translator
         LexScanner l = new LexScanner(source);
         Parser p = new Parser();
-        Translator t = new Translator();
+        Translator t = new Translator(p);
+
         p.setLexer(l);
         p.setDebug(false);
         p.setPrintTree(false);
         t.setDebug(true);
         t.setCrashOnError(false);
+
         // Translate Java Code
         ASTNode program = p.parse();
         String response = "";
