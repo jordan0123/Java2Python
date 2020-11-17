@@ -650,19 +650,6 @@ public class Translator {
                 pyBuilder.append("]");
                 break;
 
-                case "while statement":
-                children = nodeStack.pop().getChildren();
-
-                pyBuilder.append("while ");
-                translate(children.get(0));
-                pyBuilder.append(":");
-                pyBuilder.newLine();
-
-                pyBuilder.increaseIndent();
-                translate(children.get(1));
-                pyBuilder.decreaseIndent();
-                break;
-
                 case "if statement":
                 children = nodeStack.pop().getChildren();
                 options.increaseScope();
@@ -717,6 +704,25 @@ public class Translator {
                 pyBuilder.decreaseIndent();
                 break;
 
+                /* START of loop cases */
+
+                case "while statement":
+                children = nodeStack.pop().getChildren();
+                options.increaseScope();
+                options.addStack("inLoop");
+
+                pyBuilder.append("while ");
+                translate(children.get(0));
+                pyBuilder.append(":");
+                pyBuilder.newLine();
+
+                pyBuilder.increaseIndent();
+                translate(children.get(1));
+                pyBuilder.decreaseIndent();
+                options.removeStack("inLoop");
+                options.decreaseScope();
+                break;
+
                 case "do statement":
                 children = nodeStack.pop().getChildren();
                 options.increaseScope();
@@ -730,25 +736,6 @@ public class Translator {
                 translate(children.get(1));
                 pyBuilder.append("): break");
                 pyBuilder.addLine();
-                pyBuilder.decreaseIndent();
-
-                options.removeStack("inLoop");
-                options.decreaseScope();
-                break;
-
-                case "foreach statement":
-                children = nodeStack.pop().getChildren();
-                options.increaseScope();
-                options.addStack("inLoop");
-
-                pyBuilder.append("for ");
-                translate(children.get(0));
-                pyBuilder.append(" in ");
-                translate(children.get(1));
-                pyBuilder.append(":");
-                pyBuilder.newLine();
-                pyBuilder.increaseIndent();
-                translate(children.get(2));
                 pyBuilder.decreaseIndent();
 
                 options.removeStack("inLoop");
@@ -777,6 +764,27 @@ public class Translator {
                 options.removeStack("inLoop");
                 options.decreaseScope();
                 break;
+
+                case "foreach statement":
+                children = nodeStack.pop().getChildren();
+                options.increaseScope();
+                options.addStack("inLoop");
+
+                pyBuilder.append("for ");
+                translate(children.get(0));
+                pyBuilder.append(" in ");
+                translate(children.get(1));
+                pyBuilder.append(":");
+                pyBuilder.newLine();
+                pyBuilder.increaseIndent();
+                translate(children.get(2));
+                pyBuilder.decreaseIndent();
+
+                options.removeStack("inLoop");
+                options.decreaseScope();
+                break;
+
+                /* END of loop cases */
 
                 case "try statement":
                 children = nodeStack.pop().getChildren();
