@@ -29,6 +29,9 @@ public class Translator {
     // identifier stack for switch statements
     Stack<String> switchCmp;
 
+    // identifier stack for classes
+    Stack<String> classNames;
+
     // found a (pre|post)fix (inc|dec)rement
     // - in the order of pre(inc, dec), post(inc, dec)
     private boolean[] foundNfix;
@@ -38,6 +41,7 @@ public class Translator {
         pyBuilder = new PythonBuilder();
         options = new HashTableSet<String>();
         switchCmp = new Stack<String>();
+        classNames = new Stack<String>();
 
         litTable = new HashMap<String, String>();
         litTable.put("||", "or");
@@ -320,6 +324,7 @@ public class Translator {
                 case "class declaration":
                 children = nodeStack.pop().getChildren();
                 String cName = children.get(1).getValue();
+                classNames.push(cName);
                 pyBuilder.append("class ");
 
                 if (!(children.get(0).childCount() > 0) || !children.get(0).getChildren().get(0).getType().equals("public_kw")) {
@@ -342,6 +347,7 @@ public class Translator {
                     pyBuilder.decreaseIndent();
                 }
 
+                classNames.pop();
                 translate(children.get(2));
                 pyBuilder.decreaseIndent();
                 break;
@@ -596,6 +602,7 @@ public class Translator {
                 case "method invocation":
                 children = nodeStack.pop().getChildren();
                 String methodName = children.get(0).getValue().replaceFirst("^this.", "self.");
+                if (!classNames.empty() && parser.classHasMethod(classNames.peek(), methodName)) pyBuilder.append("self.");
                 translate(children.get(0));
                 pyBuilder.append("(");
                 translate(children.get(1));
@@ -665,7 +672,8 @@ public class Translator {
                 pyBuilder.newLine();
                 pyBuilder.increaseIndent();
                 translate(children.get(1));
-                pyBuilder.decreaseIndent();
+                pyBuilder.decreaseIndent(1 + options.getGlobal("breakIndent"));
+                options.clear("breakIndent");
 
                 if (children.size() > 2) {
                     for (ASTNode els : children.subList(2, children.size())) {
@@ -688,7 +696,8 @@ public class Translator {
                 pyBuilder.newLine();
                 pyBuilder.increaseIndent();
                 translate(children.get(1));
-                pyBuilder.decreaseIndent();
+                pyBuilder.decreaseIndent(1 + options.getGlobal("breakIndent"));
+                options.clear("breakIndent");
 
                 if (children.size() > 2) translate(children.get(2));
                 break;
@@ -701,7 +710,8 @@ public class Translator {
                 pyBuilder.newLine();
                 pyBuilder.increaseIndent();
                 translate(children.get(0));
-                pyBuilder.decreaseIndent();
+                pyBuilder.decreaseIndent(1 + options.getGlobal("breakIndent"));
+                options.clear("breakIndent");
                 break;
 
                 /* START of loop cases */
@@ -884,15 +894,19 @@ public class Translator {
                 case "field access":
                 ArrayList<String> field = new ArrayList<String>(Arrays.asList(nodeStack.pop().getValue().split("\\.")));
                 if (debug) System.out.println("Field: " + field);
+
+                boolean firstElement = true;
                 if (field.size() > 1) {
                     for (String idnt : field.subList(0, field.size()-2)) {
+                        if (firstElement && idnt.equals("this")) idnt = "self";
                         pyBuilder.append(idnt + ".");
+                        firstElement = false;
                     }
 
                     if (field.get(field.size()-1).equals("length")) {
                         pyBuilder.append("len(" + field.get(field.size()-2) + ")");
                     } else pyBuilder.append(field.get(field.size()-2) + "." + field.get(field.size()-1));
-                } else if (field.size() > 0) pyBuilder.append(field.get(0));
+                } else if (field.size() > 0) pyBuilder.append(field.get(0).replace("this", "self"));
 
                 break;
 
