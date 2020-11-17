@@ -1550,10 +1550,8 @@ public class Parser {
         expect("do_kw", false);
         ASTNode doStmnt = new ASTNode("do statement",null, curTok.getLine());
         expect("open_bracket_lt", true);
-        nextNonSpace(); // move past {
         doStmnt.addChild(statement());
-        expect("close_bracket_lt", false);
-        expect("while_kw", true);
+        expect("while_kw", false);
         expect("(_op", true);
         nextNonSpace(); // move past (
         doStmnt.addChild(expression());
