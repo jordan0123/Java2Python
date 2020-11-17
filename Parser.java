@@ -29,7 +29,6 @@ public class Parser {
         // pre-defined classes to be recognized
         String[] class_names = { "Exception", "ArithmeticException" };
         this.references.addAll(Arrays.asList(class_names));
-        
         initModifiers();
     }
 	
@@ -299,7 +298,7 @@ public class Parser {
             if(fToken == "class_kw")
             {
                 this.fp = new FirstPass(lexer.getSource());
-                //System.exit(0);
+                loadReferences(); // load class names from firstPass
                 program.addChild(typeDeclarations());
             }else{
                 program.addChild(blockStatements());
@@ -1868,11 +1867,12 @@ ASTNode forInit() throws Exception
         expect("class_kw", false);
         expect("identifier", true);
         classDec.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
-        if(references.contains(curTok.getLiteral()))
+        if(!references.contains(curTok.getLiteral()))
         {
-            customErrorMsg(curTok.getLiteral() + " has already been declared", curTok.getLine(), curTok.getPos());
+            // TODO: worry about twice declared classes in first pass perhaps?
+            //customErrorMsg(curTok.getLiteral() + " has already been declared", curTok.getLine(), curTok.getPos());
+            references.add(curTok.getLiteral());
         }
-        references.add(curTok.getLiteral());
         nextNonSpace(); // advance past identifier
         classDec.addChild(classBody());
         exitNT("classDeclaration");
