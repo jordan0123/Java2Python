@@ -334,7 +334,7 @@ public class Translator {
                 pyBuilder.increaseIndent();
 
                 if (!parser.classHasMethod(cName, cName)) {
-                    pyBuilder.append("def " + cName + "(self):");
+                    pyBuilder.append("def __init__(self):");
                     pyBuilder.newLine();
                     pyBuilder.increaseIndent();
                     pyBuilder.append("pass");
