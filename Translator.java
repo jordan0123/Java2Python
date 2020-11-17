@@ -802,9 +802,7 @@ public class Translator {
 
                 case "catch clause":
                 children = nodeStack.pop().getChildren();
-                pyBuilder.append("except ");
-                translate(children.get(0).getChildren().get(1));
-                pyBuilder.append(":");
+                pyBuilder.append("except:");
                 pyBuilder.newLine();
                 pyBuilder.increaseIndent();
                 translate(children.get(1));
