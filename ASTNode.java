@@ -81,6 +81,21 @@ class ASTNode {
         return false;
     }
 
+    // returns true if node or any of its descendants contains
+    // a child of type 'type'
+    boolean containsAll(String type) {
+        boolean containsType = contains(type);
+        if (!containsType) {
+            for (ASTNode child : children) {
+                containsType = child.containsAll(type);
+                if (containsType) return true;
+            }
+
+            // should be false
+            return containsType;
+        } else return true;
+    }
+
     // set parent node
     void setParent(ASTNode parent) {this.parent = parent; }
     // get parent node
