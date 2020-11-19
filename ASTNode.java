@@ -1,3 +1,5 @@
+import java.util.regex.Pattern;
+
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -81,6 +83,16 @@ class ASTNode {
         return false;
     }
 
+    // returns true if node matches a child of type 
+    // 'type'
+    boolean contains(Pattern type) {
+        for (ASTNode child : children) {
+            if (type.matcher(child.getType()).find()) return true;
+        }
+        
+        return false;
+    }
+
     // returns true if node or any of its descendants contains
     // a child of type 'type'
     boolean containsAll(String type) {
@@ -93,6 +105,21 @@ class ASTNode {
 
             // should be false
             return containsType;
+        } else return true;
+    }
+
+    // returns true if node or any of its descendants matches
+    // a child of type 'type'
+    boolean containsAll(Pattern type) {
+        boolean matchesType = contains(type);
+        if (!matchesType) {
+            for (ASTNode child : children) {
+                matchesType = child.containsAll(type);
+                if (matchesType) return true;
+            }
+
+            // should be false
+            return matchesType;
         } else return true;
     }
 
