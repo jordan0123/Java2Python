@@ -587,10 +587,9 @@ public class Translator {
                             pyBuilder.append("')");
                         } else translate(child);
 
-                        if (stringUpcast && !exempt)
-                            pyBuilder.append(")");
-
-                        pyBuilder.append(" ");
+                        if (stringUpcast && !exempt) pyBuilder.append(")");
+                        // don't add a space if current token is a unary expression
+                        if (!child.getType().equals("unary expression")) pyBuilder.append(" ");
                     }
                 }
 
