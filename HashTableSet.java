@@ -35,6 +35,10 @@ public class HashTableSet<E> {
             return hashTable.get(index).get(key);
         } else return 0;
     }
+    
+    public int getCurrent(E key) {
+        return get(key, currentScope);
+    }
 
     public int getGlobal(E key) {
         return get(key, 0);
