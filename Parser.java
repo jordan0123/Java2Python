@@ -668,7 +668,6 @@ public class Parser {
         {
             System.out.println(curTok.getLiteral());
             System.out.println(curTok.tokenCode());
-            System.out.println("Array initialier not supported yet!");
             varInit.addChild(arrayInitializer());
         }
         else
@@ -2082,9 +2081,12 @@ ASTNode forInit() throws Exception
         ArrayList<String> find = new ArrayList<String>();
         find.add("EOF");
         find.add("semi_colon_lt");
+        find.add("class_kw");
         find.add("(_op");
         String fToken = lookAheadToFind(find);
-        if(fToken == "(_op"){
+        if(fToken == "class_kw"){
+            clsMemDec = classDeclaration();
+        }else if(fToken == "(_op"){
             clsMemDec = methodDeclaration();
         }else{
             clsMemDec = fieldDeclaration();
