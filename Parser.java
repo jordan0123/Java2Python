@@ -6,38 +6,42 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Parser {
-	private LexScanner lexer;
-	private static int depth = 0;
-    private ArrayList<JavaToken> buffer;
-    private JavaToken curTok;
-    private JavaToken lastTok;
-    private Map<String,String[]> modifiers;
-
-    private boolean debug = true;
-    private boolean printTree = true;
-    private String errorMsg = null;
-    private ArrayList<Comment> comments;
-    private ArrayList<String> references;
-    private FirstPass fp;
+	private LexScanner lexer; // Lexical Analyzer class
+    private ArrayList<JavaToken> buffer; // buffer for tokens read from LexScanner but not consumed
+    private JavaToken curTok; // current token
+    private JavaToken lastTok; // previous token
+    
+    private boolean debug = true; // debug mode set to default
+    private boolean printTree = true; // print AST after source code is recognized
+    private static int depth = 0; //tracks function depth for debug printing
+    
+    private String errorMsg = null; // error msg if Parser encounters a syntax error
+    private ArrayList<Comment> comments; // list of comments encounter in source code
+    private ArrayList<String> references; // list of classes encountered in source code or pre-defined
+    private Map<String,String[]> modifiers; // maps modifier keywords to a list of modifier types it satisfies  -> static|{"field", "class"}
+    
+    // recognizes classes and their methods in the source code prior to the full parse performed by the parser
+    private FirstPass fp; 
     
     Parser()
     {
+        //inititalize required data structures for parsing
         this.buffer = new ArrayList<JavaToken>();
         this.comments = new ArrayList<Comment>();
         this.references = new ArrayList<String>();
         
-        // pre-defined classes to be recognized
+        // add pre-defined classes to list of class reference names
         String[] class_names = { "Exception", "ArithmeticException" };
         this.references.addAll(Arrays.asList(class_names));
         initModifiers();
     }
-	
-	void setLexer(LexScanner l)
-	{
-		this.lexer = l;
-		
-	}
-	
+    
+    void setLexer(LexScanner l)
+    {
+        this.lexer = l;
+        
+    }
+    
     String getErrorMsg()
     {
         return this.errorMsg;
@@ -48,8 +52,12 @@ public class Parser {
         return comments;
     }
     
+    /*
+        Returns the nextToken from either the token buffer or the lexical analyzer. 
+        Priotizes the buffer to maintain order of source code file
+    */
     String nextToken() throws IOException, Exception
-    {
+    { 
         if (buffer.size() > 0)
         {
             if(this.curTok != null){
@@ -60,9 +68,9 @@ public class Parser {
         else
         {
             lexer.nextToken();
+            // if not a space or comment token store current token as last token before updating
             if(this.curTok != null && curTok.tokenCode() != 3009 && curTok.tokenCode() != 3014)
             {
-                // if not a space store current token as last token before updating
                 this.lastTok = this.curTok;
             }
             this.curTok = lexer.getJavaToken();
@@ -70,22 +78,28 @@ public class Parser {
         return this.curTok.tokenName();
     }
     
-    
-	String nextNonSpace() throws Exception
-	{   
-		nextToken();
-		while (curTok.tokenCode() == 3009 || curTok.tokenCode() == 3014)
-		{
+    /*
+        Returns the next non space or comment token
+    */
+    String nextNonSpace() throws Exception
+    {
+        nextToken();
+        while (curTok.tokenCode() == 3009 || curTok.tokenCode() == 3014)
+        {
+            // add comment tokens to the comment list
             if(curTok.tokenCode() == 3014)
             {
                 comments.add(new Comment(curTok.getLiteral(), curTok.getLine()));
             }
             nextToken();
-		}
+        }
         if (debug) System.out.println("Current token " + curTok.tokenName() + " Literal " + curTok.getLiteral() + " token line " + curTok.getLine());
-		return curTok.tokenName();
-	}
+        return curTok.tokenName();
+    }
     
+    /*
+        Used exclusively by the lookahead function to avoid using the buffer in nextToken
+    */
     JavaToken nextPeekToken() throws IOException, Exception
     {
         lexer.nextToken();
@@ -103,22 +117,22 @@ public class Parser {
         }
         return retVal;
     }
-    
-    // get JavaToken n spots ahead (adds to buffer that will be removed from over pulling from Lexer)
+    /*
+        Looks n JavaToken spots ahead of the current token.
+        Retrieves from and adds to the Parser's JavaToken buffer when approriate
+    */
     JavaToken lookAhead(int n) throws Exception
     {
         JavaToken tok;
-        //printBuffer();
         while(n > buffer.size()){
-            // copy by value to avoid multiple occur of one reference with dupe values
+            // copy by value to avoid reusing same JavaToken
             tok = nextPeekToken().getCopy();
             buffer.add(tok);
         }
         //printBuffer();
         return buffer.get(n - 1);
     }
-    
-    // print current buffer contents
+    //print current buffer contents
     void printBuffer(){
         if (debug) {
             JavaToken print;
@@ -129,8 +143,10 @@ public class Parser {
             System.out.println("");
         }
     }
-    // loads class reference data from FirstPass class which collects method and class info before the full parse.
-    //Loading references allows the parser to recognize classes before they have been declared in the file
+    /*
+    Loads class reference data from FirstPass class which collects method and class info before the full parse.
+    Loading references allows the parser to recognize classes before they have been declared in the file
+    */
     void loadReferences(){
         for(String key: this.fp.getClassMethods().keySet()){
             this.references.add(key);
@@ -140,7 +156,7 @@ public class Parser {
     HashMap<String, String[]> getClassMethods(){
         return this.fp.getClassMethods();
     }
-    
+    // method for determining if a className has a methodName
     boolean classHasMethod(String className, String methodName){
         if(this.fp.getClassMethods().containsKey(className)){
             String[] methods = this.fp.getClassMethods().get(className);
@@ -163,10 +179,11 @@ public class Parser {
             return 0;
         }
     }
-    // Identifies when a non-implemented function would be called during parse and exit
-    // used for tagging parts of code that are not implement
-    // i.e. need to call statement but it's not implemented yet
-    // notImplemented("statement");
+    /*
+    Identifies when a non-implemented function would be called during parse and exit
+    used for tagging parts of code that are not implement
+    i.e. need to call statement but it's not implemented yet -> notImplemented("statement");
+    */
     void notImplemented(String funcName) throws Exception
     {
         customErrorMsg("This is a " + funcName + ". Not implemented yet.", curTok.getLine(), curTok.getPos());
@@ -184,7 +201,11 @@ public class Parser {
             errorMsg(expToken, curTok.getLine(), curTok.getPos());
         }
     }
-    
+    /*
+    Function for looking ahead in the JavaToken buffer until it finds one of the specified token types 
+    param:find
+    Note: Keeps track of ( and [ to ignore tokens in sub expressions
+    */
     String lookAheadToFind(ArrayList<String> find) throws Exception
     {
         enterNT("lookAheadToFind");
@@ -194,7 +215,7 @@ public class Parser {
         int n = 0; //lookahead value
         // if parse just started need to initialize curTok
         if(this.curTok == null){
-            nextNonSpace(); 
+            nextNonSpace();
         }
         JavaToken tok = curTok;
         String fToken = "";
@@ -239,11 +260,12 @@ public class Parser {
         return fToken;
     }
     
-    // gives multiple options for expected token
-    // returns tokenName if one is found
-    // else returns "" 
-    // next: determines if the next Token should be removed before checking
-    // raiseError: determines whether an error is raised if no matches are made
+    /*
+    Gives multiple options for expected token
+    returns tokenName if one is found else returns "" 
+    params: next -> determines if the next Token should be called before checking the current token
+            raiseError -> determines whether an error is raised if no matches are made
+    */
     String expectOr(boolean next, boolean raiseError, String ... expTokens) throws Exception
     {
         String foundTok = "";
@@ -262,13 +284,13 @@ public class Parser {
         }
         return foundTok;
     }
-    
+    //creates error message based on params expected token, current line, and current position
     void errorMsg(String expToken, int line, int pos) throws Exception
     {
         errorMsg = "Error (line " + line + " position " + pos + ") Expecting " + expToken +" Current Token " + curTok.tokenName() + " Literal " + curTok.getLiteral();
         throw new Exception("Syntax error");
     }
-    //
+    //creates custom error message using params message, current line, and current position
     void customErrorMsg(String msg, int line, int pos) throws Exception
     {
         errorMsg = "Error (line " + line + " position " + pos + ")" + msg;
@@ -344,10 +366,6 @@ public class Parser {
 	{
 		enterNT("blockStatements");
         ASTNode blockStmnts = new ASTNode("block statements",null, curTok.getLine());
-//        //to handle Java code without {}. Python doesn't need class info so we don't need to require it
-//        if(this.curTok == null){
-//            nextNonSpace();
-//        }
         while(curTok.tokenCode() != 3004 && curTok.tokenCode() != 4001 && curTok.tokenCode != 1026 && curTok.tokenCode != 1007) // close_bracket_lt, 4001 = EOF 1026 = case_kw, 1007 = default_kw
         {
             // error msg if reach EOF while parsing
@@ -416,6 +434,12 @@ public class Parser {
         return miscStmnt;
     }
     
+    /*
+    * <statement> ::= <block> | <empty statement> | <if statement> | <for statement> | <switch statement> |
+    *<do statement> | <while statement> | <break statement> | <continue statement> | <return statement> |
+    * <throw statement> | <try statement> | <expression statement>
+    */
+    
     ASTNode statement() throws Exception
     {
         enterNT("statement");
@@ -464,7 +488,7 @@ public class Parser {
             	stmnt.addChild(tryStatement());
                 break;
             default:
-                //with everything else weeded out. It's either an <expression statement> or a <labeled statement>. Let's worry about <labeled statement> some other time.
+                //with everything else weeded out. It must be an <expression statement>
                 stmnt.addChild(expressionStatement());
         }
         exitNT("statement");
@@ -499,7 +523,9 @@ public class Parser {
         return localVarDec;
 	}
 	
-	// returns if current token is a type i.e. int, short, double keywords in java
+	/*
+    returns if current token is a keyword type including primitive keywords like i.e. int, short, double keywords as well as user defined reference types 
+    */
 	boolean isType() throws Exception
 	{
         if(references.contains(curTok.getLiteral())){
@@ -522,7 +548,6 @@ public class Parser {
         }
 	}
     // stores list of valid assignment Operators
-    // TODO: Generalize to provide various valid lists by key example "assignmentExpressions" as param would retrieve assOps list
     static String[] getAssignmentOps()
     {
         String[] assOps = {"equals_op", "*=_op", "/=_op", "%=_op", "+=_op", "-=_op", "<<=_op", ">>=_op"};
@@ -561,7 +586,7 @@ public class Parser {
     
 	/*
 	 * <variable declarators> ::= <variable declarator> 
-	 * 							| <variable declarators> , <variable declarator>
+	 * | <variable declarators> , <variable declarator>
 	 */
 	ASTNode variableDeclarators() throws Exception
 	{
@@ -643,7 +668,6 @@ public class Parser {
         {
             System.out.println(curTok.getLiteral());
             System.out.println(curTok.tokenCode());
-            System.out.println("Array initialier not supported yet!");
             varInit.addChild(arrayInitializer());
         }
         else
@@ -653,7 +677,9 @@ public class Parser {
         exitNT("variableInitializer");
         return varInit;
 	}
-    
+    /*
+    * <array initializer> ::= { <variable initializers>? , ? }
+    */
     ASTNode arrayInitializer() throws Exception
     {
         enterNT("arrayInitializer");
@@ -698,11 +724,8 @@ public class Parser {
     }
     
 	/*
-     * <statement expression> ::= <assignment> | 
-     *           <preincrement expression> | <postincrement expression>
-     *            <predecrement expression> | <postdecrement expression> | 
-     *           <method invocation> | <class instance creation expression>
-     *
+     * <statement expression> ::= <assignment> | <preincrement expression> | <postincrement expression> | <predecrement expression> | 
+     * <postdecrement expression> | <method invocation> | <class instance creation expression>
      */
     ASTNode statementExpression() throws Exception
     {
@@ -723,7 +746,6 @@ public class Parser {
             default:
                 //either assignment, post(increment|decrement), or method invocation
                 //use lookahead to find assignment or -- ++ else it's a method invocation
-                
                 String[]assOps = getAssignmentOps();
                 ArrayList<String> find = new ArrayList<String>(Arrays.asList(assOps));
                 find.add("--_op");
@@ -780,7 +802,6 @@ public class Parser {
 	ASTNode assignmentExpression() throws Exception
 	{
 		//look ahead until it finds a token that indicates either an <assignment operator> or <conditional expression>
-        
         enterNT("assignmentExpression");
         ASTNode assExp = new ASTNode("assignment expression",null, curTok.getLine());
         // these indicated assignment expression
@@ -831,15 +852,12 @@ public class Parser {
 	
     /*
 	 * <conditional expression> ::= <conditiongital or expression> | 
-	 * 								<conditional or expression> ? <expression> : <conditional expression>
+	 * <conditional or expression> ? <expression> : <conditional expression>
 	 */
 	ASTNode conditionalExpression(String endToken) throws Exception
 	{
         enterNT("conditionalExpression");
-		ASTNode cndExpr = new ASTNode("conditional expression",null, curTok.getLine());
-		//expectOr(false, true, "identifier", "string_lt", "decimal_lt", "integer_lt", "(_op");
-        
-        //JavaToken nextTok = lookAhead(1);
+        ASTNode cndExpr = new ASTNode("conditional expression",null, curTok.getLine());
         
         boolean endExp = false;
         boolean validExp = false;
@@ -906,19 +924,6 @@ public class Parser {
                              validExp=false;
                              lastPart = "operator";
                          }
-//                        System.out.println("Heyyooo here we are ");
-//                        if (lookAhead(1).tokenName() == "identifier") {
-//                            System.out.println("If baby");
-//                            cndExpr.addChild(prefixExpression(curTok.tokenName()));
-//                            validExp = true;
-//                            lastPart = "operand";
-//                        } else {
-//                            // operator is not paired with an identifier, which is invalid
-//                            System.out.println("Else baby");
-//                            validExp = false;
-//                            lastPart = "operator";
-//                        }
-
                         break;
                     case "*_op":
                     case "/_op":
@@ -956,15 +961,6 @@ public class Parser {
                         }
                         endExp = true;
                         break;
-                    
-//                    case "identifier":
-//                    if (lookAhead(1).tokenName() == "++_op" || lookAhead(1).tokenName() == "--_op") {
-//                        cndExpr.addChild(postfixExpression(lookAhead(1).tokenName()));
-//                        lastPart = "operand";
-//                        validExp=true;
-//                        break;
-//                    }
-
                     default:
                         //Some primary (field access, array access, method, literal, etc)
                         // can't have two operands in a row
@@ -983,7 +979,7 @@ public class Parser {
         }
         exitNT("conditionalExpression");
         return cndExpr;
-	}
+    }
     
     ASTNode primary() throws Exception
     {
@@ -1033,11 +1029,6 @@ public class Parser {
                 case "this_kw":
                 case "super_kw":
                 case "identifier":
-                /*
-                    if (lookAhead(1).tokenName().equals("[")) {
-                    }
-                */
-
                     //determine if method, field access, array access, or var
                     //keep checking for . and '[]' vs '()' vs ''\
                     primNoNew = handleIdentifier();
@@ -2090,9 +2081,12 @@ ASTNode forInit() throws Exception
         ArrayList<String> find = new ArrayList<String>();
         find.add("EOF");
         find.add("semi_colon_lt");
+        find.add("class_kw");
         find.add("(_op");
         String fToken = lookAheadToFind(find);
-        if(fToken == "(_op"){
+        if(fToken == "class_kw"){
+            clsMemDec = classDeclaration();
+        }else if(fToken == "(_op"){
             clsMemDec = methodDeclaration();
         }else{
             clsMemDec = fieldDeclaration();
