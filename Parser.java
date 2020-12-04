@@ -980,7 +980,9 @@ public class Parser {
         exitNT("conditionalExpression");
         return cndExpr;
     }
-    
+    /*
+    * <primary> ::= <primary no new array> | <array creation expression>
+    */
     ASTNode primary() throws Exception
     {
         enterNT("primary");
@@ -1010,7 +1012,10 @@ public class Parser {
         exitNT("primary");
         return prim;
     }
-    
+    /*
+    *<primary no new array> ::= <literal> | this | ( <expression> ) | <class instance creation expression> |
+    * <field access> | <method invocation> | <array access>
+    */
     ASTNode primaryNoNewArray() throws Exception
     {
         enterNT("primaryNoNewArray");
@@ -1042,7 +1047,9 @@ public class Parser {
         exitNT("primaryNoNewArray");
         return primNoNew;
     }
-    
+    /*
+    * Consumes the unary expression operator but leaves the expression to be handled later
+    */
     ASTNode unaryExpression() throws Exception
     {
         enterNT("unaryExpression");
@@ -1052,7 +1059,9 @@ public class Parser {
         exitNT("unaryExpression");
         return unExp;
     }
-    
+    /*
+    *Consumes the binary expression operator but leaves it's operands untouched
+    */
     ASTNode binaryExpression() throws Exception
     {
         enterNT("binaryExpression");
@@ -1083,15 +1092,16 @@ public class Parser {
         exitNT("binaryExpression");
         return binExp;
     }
-    // checks last node and determines if it's a valid operand for the binaryExp
-    // binary exp types
-    //  - "parenthesized expression"
-    //  - literal
-    // unary exp
-    //  - "binary operators"
+    /*
+    *checks last node and determines if it's a valid operand for the binaryExp
+    * binary exp types
+    *  - "parenthesized expression"
+    *  - literal
+    * unary exp
+    *  - "binary operators"
+    */
     int binaryOrUnary(String lastNode) throws Exception
     {
-        
         int retVal = 0;
         if(isLiteral(lastNode)){
             retVal = 2;
@@ -1129,14 +1139,15 @@ public class Parser {
         }
         return retVal;
     }
-    
+    /*
+    * Handles recognizing and building the AST for combinations of identifiers, method invocations, 
+    * field accesses, and array access
+    */
     ASTNode handleIdentifier() throws Exception
     {
         enterNT("handleIdentifier");
         ASTNode id = null;
         boolean cont = true;
-//        ArrayList<String> names = new ArrayList<String>();
-//        names.add(curTok.getLiteral());
         String name = curTok.getLiteral();
         boolean periodEnd = false;
         String idType = "identifier";
@@ -1200,6 +1211,9 @@ public class Parser {
         return id;
     }
     
+    /*
+    * <array access> ::= <expression name> [ <expression> ] | <primary no new array> [ <expression>]
+    */
     ASTNode arrayAccess(String name) throws Exception
     {
         enterNT("arrayAccess");
@@ -1215,11 +1229,14 @@ public class Parser {
             //nextNonSpace(); // move past .
             arrAcc.addChild(handleIdentifier());
         }
-        
         exitNT("arrayAccess");
         return arrAcc;
     }
-    
+    /*
+    * <method invocation> ::= <method name> ( <argument list>? ) |
+    *           <primary> . <identifier> ( <argument list>? ) |
+    *           super . <identifier> ( <argument list>? )
+    */
     ASTNode methodInvocation(String name) throws Exception
     {
         enterNT("methodInvocation");
@@ -1245,14 +1262,13 @@ public class Parser {
         exitNT("methodInvocation");
         return methInv;
     }
-        
+    /*
+    * <postfix expression> ::= <postincrement expression> | <postdecrement expression>
+    */
     ASTNode postfixExpression(String operator) throws Exception
     {
         enterNT("postfixExpression");
         ASTNode postfix = new ASTNode("postfix expression",null, curTok.getLine());
-        //expect("identifier", false);
-        //postfix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
-        //nextNonSpace();
         postfix.addChild(conditionalExpression(operator));
         expect(operator, false);
         postfix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
@@ -1271,7 +1287,9 @@ public class Parser {
         exitNT("postfixExpressionOp");
         return postfixExpOp;
     }
-    
+    /*
+    * <prefix expression> ::= <preincrement expression> | <predecrement expression>
+    */
     ASTNode prefixExpression(String operator) throws Exception
     {
         enterNT("prefixExpression");
@@ -1279,10 +1297,7 @@ public class Parser {
         expect(operator, false);
         prefix.addChild(new ASTNode(curTok.tokenName(),curTok.getLiteral(), curTok.getLine()));
         nextNonSpace(); // advance past operator
-        //expect("identifier", false);
-        //prefix.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
         prefix.addChild(expression());
-        //nextNonSpace();
         exitNT("prefixExpression");
         return prefix;
     }
@@ -1297,7 +1312,10 @@ public class Parser {
         return prefixExpOp;
     }
     
-    // new <type> <dim exprs> <dims>?
+   /*
+   * <array creation expression> ::= new <primitive type> <dim exprs> <dims>? |
+   *                               new <class or interface type> <dim exprs> <dims>?
+   */
     ASTNode arrayCreationExpression() throws Exception
     {
         enterNT("arrayCreationExpression");
@@ -1318,7 +1336,9 @@ public class Parser {
         exitNT("arrayCreationExpression");
         return arrCreate;
     }
-    
+    /*
+    * <dim exprs> ::= <dim expr> | <dim exprs> <dim expr>
+    */
     ASTNode dimExprs() throws Exception
     {
         enterNT("dimExprs");
@@ -1339,7 +1359,9 @@ public class Parser {
         exitNT("dimExprs");
         return dimExps;
     }
-    
+    /*
+    * <dim expr> ::= [ <expression> ]
+    */
     ASTNode dimExpr() throws Exception
     {
         enterNT("dimExpr");
@@ -1351,7 +1373,9 @@ public class Parser {
         exitNT("dimExpr");
         return dimExp;
     }
-    
+    /*
+    * <dims> ::= <dim> | <dims> [ ]
+    */
     ASTNode dims() throws Exception
     {
         enterNT("dims");
@@ -1370,6 +1394,9 @@ public class Parser {
         exitNT("dims");
         return dms;
     }
+    /*
+    * <dim> ::= [ ]
+    */
     ASTNode dim() throws Exception
     {
         enterNT("dim");
@@ -1380,7 +1407,9 @@ public class Parser {
         exitNT("dim");
         return dm;
     }
-	
+    /*
+    * <argument list> ::= <expression> | <argument list> , <expression>
+    */
     ASTNode argumentList() throws Exception
     {
         enterNT("argumentList");
@@ -1420,9 +1449,7 @@ public class Parser {
 	}
 	
     /*
-     *
      *<left hand side> ::= <expression name> | <field access> | <array access>
-     * INCOMPLETE ONLY HANDLES EXPRESSION NAME which it assumes to be an identifier
      */
     ASTNode leftHandSide() throws Exception
     {
@@ -1432,7 +1459,9 @@ public class Parser {
         exitNT("leftHandSide");
         return lhs;
     }
-    
+    /*
+     * <switch statement> ::= switch ( <expression> ) <switch block>
+     */
     ASTNode switchStatement() throws Exception
     {
     	enterNT("switchStatement");
@@ -1447,7 +1476,9 @@ public class Parser {
     	exitNT("switchStatement");
     	return switchStmnt;
     }
-    
+    /*
+     * <switch block> ::= { <switch block statement groups>? <switch labels>? }
+     */
     ASTNode switchBlock() throws Exception
     {
     	enterNT("switchBlock");
@@ -1462,7 +1493,10 @@ public class Parser {
         exitNT("switchBlock");
     	return switchBlk;
     }
-    
+    /*
+     * <switch block statement groups> ::= <switch block statement group> |
+     *                            <switch block statement groups> <switch block statement group>
+     */
     ASTNode switchBlockStatementGroups() throws Exception
     {
     	enterNT("switchBlockStatementGroups");
@@ -1479,7 +1513,9 @@ public class Parser {
     	exitNT("switchBlockStatementGroups");
     	return switchBlkStmntGroups;
     }
-    
+    /*
+     * <switch block statement group> ::= <switch labels> <block statements>
+     */
     ASTNode switchBlockStatementGroup() throws Exception
     {
     	enterNT("switchBlockStatementGroup");
@@ -1491,7 +1527,9 @@ public class Parser {
     	
     	return switchBlkStmntGroup;
     }
-    
+    /*
+     * <switch labels> ::= <switch label> | <switch labels> <switch label>
+     */
     ASTNode switchLabels() throws Exception
     {
     	enterNT("switchLabels");
@@ -1510,7 +1548,9 @@ public class Parser {
     	
     	return switchLbls;
     }
-    
+    /*
+     * <switch label> ::= case <constant expression> : | default :
+     */
     ASTNode switchLabel() throws Exception
     {
     	enterNT("switchLabel");
@@ -1533,7 +1573,9 @@ public class Parser {
     	
     	return switchLbl;
     }
-    
+    /*
+     * <do statement> ::= do <statement> while ( <expression> ) ;
+     */
     ASTNode doStatement() throws Exception
     {
         enterNT("doStatement");
@@ -1551,7 +1593,9 @@ public class Parser {
         nextNonSpace();
         return doStmnt;
     }
-    
+    /*
+     * <<while statement> ::= while ( <expression> ) <statement>
+     */
     ASTNode whileStatement() throws Exception
     {
         enterNT("whileStatement");
@@ -1566,7 +1610,9 @@ public class Parser {
         exitNT("whileStatement");
         return whileStmnt;
     }
-
+    /*
+     * <else statement> ::= else <statement> | else if <statement>
+     */
     ASTNode elseStatement() throws Exception
     {
         enterNT("elseStatement");
@@ -1595,7 +1641,9 @@ public class Parser {
         exitNT("elseStatement");
         return elseStmnt;
     }
-    
+    /*
+     * <if then statement>::= if ( <expression> ) <statement> <else>?
+     */
     ASTNode ifStatement() throws Exception
     {
         enterNT("ifStatement");
@@ -1609,7 +1657,9 @@ public class Parser {
         exitNT("ifStatement");
         return ifStmnt;
     }
-    
+    /*
+     * handles headers for if statement i.e. ( <expression> )
+     */
     ASTNode ifHeaders() throws Exception
     {
         expect("(_op", true);
@@ -1619,7 +1669,9 @@ public class Parser {
         expect("open_bracket_lt", true);
         return exp;
     }
-    
+    /*
+     * <try statement> ::= try <block> <catches> | try <block> <catches>? <finally>
+     */
     ASTNode tryStatement() throws Exception
     {
     	enterNT("tryStatement");
@@ -1639,6 +1691,9 @@ public class Parser {
     	return tryStmnt;
     }
     
+    /*
+     * <catches> ::= <catch clause> | <catches> <catch clause>
+     */
     ASTNode catches() throws Exception
     {
     	enterNT("catches");
@@ -1650,7 +1705,9 @@ public class Parser {
     	exitNT("catches");
     	return cat;
     }
-
+    /*
+     * <catch clause> ::= catch ( <formal parameter> ) <block>
+     */
     ASTNode catchClause() throws Exception
     {
     	enterNT("catchClause");
@@ -1662,11 +1719,12 @@ public class Parser {
     	expect(")_op", false);
     	expect("open_bracket_lt", true);
     	catch_clause.addChild(block());
-    	//expect("close_bracket_lt", false); // block already does this
     	exitNT("catchClause");
     	return catch_clause;
     }
-    
+     /*
+     * <try finally> ::= <finally>
+     */
     ASTNode tryFinally() throws Exception
     {
     	enterNT("tryFinally");
@@ -1677,7 +1735,9 @@ public class Parser {
     	exitNT("tryFinally");
     	return try_finally;
     }
-
+     /*
+     * <for statement> ::= for ( <for init>? ; <expression>? ; <for update>? ) <statement>
+     */
     ASTNode forStatement() throws Exception
     {
         enterNT("forStatement");
@@ -1745,7 +1805,9 @@ public class Parser {
         exitNT("for statement");
         return forStmnt;
     }
-    
+     /*
+     * <for init> ::= <statement expression list> | <local variable declaration>
+     */
 ASTNode forInit() throws Exception
     {
         enterNT("forInit");
@@ -1760,7 +1822,6 @@ ASTNode forInit() throws Exception
             else
             {
                 forIn.addChild(statementExpressionList());
-                //expect("semi_colon_lt", false);
                 nextNonSpace(); //advance past ;
             }
             System.out.println(curTok.getLiteral());
@@ -1769,7 +1830,9 @@ ASTNode forInit() throws Exception
         exitNT("forInit");
         return forIn;
     }
-    
+     /*
+     * <for update> ::= <statement expression list>
+     */
     ASTNode forUpdate() throws Exception
     {
         enterNT("forUpdate");
@@ -1778,7 +1841,10 @@ ASTNode forInit() throws Exception
         exitNT("forUpdate");
         return forUp;
     }
-    
+     /*
+     * <statement expression list> ::= <statement expression> | 
+     *                        <statement expression list> , <statement expression>
+     */
     ASTNode statementExpressionList() throws Exception
     {
         enterNT("statementExpressionList");
@@ -1800,7 +1866,9 @@ ASTNode forInit() throws Exception
         exitNT("statementExpressionList");
         return stmntExpList;
     }
-    
+     /*
+     * <type declarations> ::= <type declaration> | <type declarations> <type declaration>
+     */
     ASTNode typeDeclarations() throws Exception
 	{
 		enterNT("typeDeclarations");
@@ -1813,8 +1881,9 @@ ASTNode forInit() throws Exception
         exitNT("typeDeclarations");
 		return typeDecs;
 	}
-    
-    
+     /*
+     * <class instance creation expression> ::= new <class type> ( <argument list>? )
+     */
     ASTNode classInstanceCreationExpression() throws Exception
     {
         enterNT("classInstanceCreationExpression");
@@ -1840,7 +1909,9 @@ ASTNode forInit() throws Exception
         exitNT("classInstanceCreationExpression");
         return clsInst;
     }
-    
+     /*
+     * <class declaration> ::= <class modifiers>? class <identifier> <super>? <interfaces>? <class body>
+     */
     ASTNode classDeclaration() throws Exception
     {
         enterNT("classDeclaration");
@@ -1858,8 +1929,6 @@ ASTNode forInit() throws Exception
         classDec.addChild(new ASTNode("identifier",curTok.getLiteral(), curTok.getLine()));
         if(!references.contains(curTok.getLiteral()))
         {
-            // TODO: worry about twice declared classes in first pass perhaps?
-            //customErrorMsg(curTok.getLiteral() + " has already been declared", curTok.getLine(), curTok.getPos());
             references.add(curTok.getLiteral());
         }
         nextNonSpace(); // advance past identifier
@@ -1867,7 +1936,9 @@ ASTNode forInit() throws Exception
         exitNT("classDeclaration");
         return classDec;
     }
-    
+    /*
+    * Initializes a hash table of modifiers and their potential types ie. static is method or field modifier
+    */
     void initModifiers(){
         modifiers = new HashMap<String,String[]>();
         String[] all = {"class","field","method", "constructor"};
@@ -1889,7 +1960,9 @@ ASTNode forInit() throws Exception
         modifiers.put("synchronized_kw", method);
         modifiers.put("native_kw", method);
     }
-    
+    /*
+    * Determines if a string is a modifier or not
+    */
     boolean isModifier(String type) throws Exception
     {
         boolean retVal = false;
@@ -1909,7 +1982,10 @@ ASTNode forInit() throws Exception
         }
         return retVal;
     }
-    
+    /*
+    * Handles consuming modifiers making sure the modifiers all match the provided type
+    *    param: type
+    */
     ASTNode handleModifiers(String type) throws Exception
     {
         enterNT("handleModifiers");
@@ -1926,7 +2002,9 @@ ASTNode forInit() throws Exception
         exitNT("handleModifiers");
         return mod;
     }
-    
+    /*
+    * <class body> ::= { <class body declarations>? }
+    */
     ASTNode classBody() throws Exception
     {
         enterNT("classBody");
@@ -1943,7 +2021,10 @@ ASTNode forInit() throws Exception
         exitNT("classBody");
         return clsBody;
     }
-    
+    /*
+    * <class body declarations> ::= <class body declaration> | 
+    *                      <class body declarations> <class body declaration>
+    */
     ASTNode classBodyDeclarations() throws Exception
     {
         enterNT("classBodyDeclarations");
@@ -1991,7 +2072,9 @@ ASTNode forInit() throws Exception
         }
         return true;
     }
-    
+    /*
+    * <constructor declaration> ::= <constructor modifiers>? <constructor declarator> <throws>? <constructor body>
+    */
     ASTNode constructorDeclaration() throws Exception
     {
         enterNT("constructorDeclaration");
@@ -2008,7 +2091,9 @@ ASTNode forInit() throws Exception
         exitNT("constructorDeclaration");
         return conDec;
     }
-    
+    /*
+    * <constructor declarator> ::= <simple type name> ( <formal parameter list>? )
+    */
     ASTNode constructorDeclarator() throws Exception
     {
         enterNT("constructorDeclarator");
@@ -2031,7 +2116,9 @@ ASTNode forInit() throws Exception
         exitNT("constructorDeclarator");
         return conDec;
     }
-    
+    /*
+    * <constructor body> ::= { <explicit constructor invocation>? <block statements>? }
+    */
     ASTNode constructorBody() throws Exception
     {
         enterNT("constructorBody");
@@ -2051,7 +2138,9 @@ ASTNode forInit() throws Exception
         exitNT("constructorBody");
         return conBody;
     }
-    
+    /*
+    * <explicit constructor invocation>::= this ( <argument list>? ) | super ( <argument list>? )
+    */
     ASTNode explicitConstructorInvocation() throws Exception
     {
         enterNT("explicitConstructorInvocation");
@@ -2073,7 +2162,9 @@ ASTNode forInit() throws Exception
         exitNT("explicitConstructorInvocation");
         return expConInv;
     }
-    
+    /*
+    * <class member declaration> ::= <field declaration> | <method declaration>
+    */
     ASTNode classMemberDeclaration() throws Exception
     {
         enterNT("classMemberDeclaration");
@@ -2094,7 +2185,9 @@ ASTNode forInit() throws Exception
         exitNT("classMemeberDeclaration");
         return clsMemDec;
     }
-    
+    /*
+    * <field declaration> ::= <field modifiers>? <type> <variable declarators> ;
+    */
     ASTNode fieldDeclaration() throws Exception
     {
         enterNT("fieldDeclaration");
@@ -2117,7 +2210,9 @@ ASTNode forInit() throws Exception
 		exitNT("fieldDeclaration");
         return fieldDec;
     }
-    
+    /*
+    * <method declaration> ::= <method header> <method body>
+    */
     ASTNode methodDeclaration() throws Exception
     {
         enterNT("methodDeclaration");
@@ -2127,7 +2222,9 @@ ASTNode forInit() throws Exception
         exitNT("methodDeclaration");
         return methDec;
     }
-    
+    /*
+    * <method header> ::= <method modifiers>? <result type> <method declarator> <throws>?
+    */
     ASTNode methodHeader() throws Exception
     {
         enterNT("method header");
@@ -2154,7 +2251,9 @@ ASTNode forInit() throws Exception
         exitNT("method header");
         return methHeader;
     }
-    
+    /*
+    * <method declarator> ::= <identifier> ( <formal parameter list>? )
+    */
     ASTNode methodDeclarator() throws Exception
     {
         enterNT("method declarator");
@@ -2175,7 +2274,9 @@ ASTNode forInit() throws Exception
         exitNT("method declarator");
         return methDec;
     }
-    
+    /*
+    * <formal parameter list> ::= <formal parameter> | <formal parameter list> , <formal parameter>
+    */
     ASTNode formalParameterList() throws Exception
     {
         enterNT("formalParameterList");
@@ -2196,7 +2297,9 @@ ASTNode forInit() throws Exception
         exitNT("formalParameterList");
         return paramList;
     }
-    
+    /*
+    * <formal parameter> ::= <type> <variable declarator id>
+    */
     ASTNode formalParameter() throws Exception
     {
         enterNT("formalParameter");
@@ -2207,7 +2310,7 @@ ASTNode forInit() throws Exception
         return formalParam;
     }
     
-	// print out the non-terminal being entered
+	// prints out the name and depth of the non-terminal function being entered
 	void enterNT(String s)
 	{
         if (debug) {
@@ -2220,7 +2323,7 @@ ASTNode forInit() throws Exception
         }
     }
 
-	// print out the non-terminal being exited
+	// prints out the name and depth of the non-terminal function being exited
 	void exitNT(String s)
 	{
         if (debug) {
@@ -2232,7 +2335,9 @@ ASTNode forInit() throws Exception
             depth--;
         }
     }
-
+    /*
+    * Prints the complete AST starting at the root
+    */ 
     void printTree(ASTNode root){
         ArrayList<ASTNode> stack = new ArrayList<ASTNode>();
         ArrayList<String> visited = new ArrayList<String>();
@@ -2267,11 +2372,15 @@ ASTNode forInit() throws Exception
             }
         }
     }
-    
+    /*
+    * Sets debug status
+    */ 
     void setDebug(boolean debug) {
         this.debug = debug;
     }
-
+    /*
+    * Sets whether or not to print tree
+    */ 
     void setPrintTree(boolean printTree) {
         this.printTree = printTree;
     }
