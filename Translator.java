@@ -24,6 +24,8 @@ public class Translator {
 
     private String errorMessage = null;
 
+    private String mainClass = null;
+
     HashMap<String, String> litTable;
 
     // identifier stack for switch statements
@@ -176,11 +178,11 @@ public class Translator {
         pyBuilder.addLine("import sys");
         pyBuilder.newLine(1);
         pyBuilder.setCursor(pyBuilder.size()-1);
-        options.addGlobal("translateMain");
-        translate(mainMethod);
+        // options.addGlobal("translateMain");
+        // translate(mainMethod);
         // generate invoker
         pyBuilder.addLine("if __name__ == '__main__':");
-        pyBuilder.addLine("    main(sys.argv)");
+        pyBuilder.addLine("    " + mainClass + ".main(sys.argv)");
         options.remove("translateMain");
     }
 
@@ -346,9 +348,8 @@ public class Translator {
                     pyBuilder.newLine();
                     pyBuilder.decreaseIndent();
                 }
-
-                classNames.pop();
                 translate(children.get(2));
+                classNames.pop();
                 pyBuilder.decreaseIndent();
                 break;
 
@@ -367,19 +368,31 @@ public class Translator {
                 break;
 
                 case "method declaration":
-                if (options.contains("translateMain") || !nodeStack.peek().isMainMethod()) {
-                    children = nodeStack.pop().getChildren();
-                    pyBuilder.append("def ");
-                    if (options.contains("translateMain")) pyBuilder.append("main(args)");
-                    else translate(children.get(0));
-                    pyBuilder.append(":");
+                if (nodeStack.peek().containsAll("static_kw")) {
+                    pyBuilder.append("@staticmethod");
                     pyBuilder.newLine();
-                    pyBuilder.increaseIndent();
-                    translate(children.get(1));
-                    pyBuilder.decreaseIndent();
-                } else if (mainMethod == null) {
-                    mainMethod = nodeStack.pop();
-                } else error("translate", "Multiple main methods defined.");
+                }
+            
+                if (nodeStack.peek().isMainMethod()) {
+                    if (mainMethod == null) {
+                        if (!classNames.empty()) {
+                            options.addGlobal("translateMain");
+                            mainMethod = nodeStack.peek();
+                            mainClass = classNames.peek();
+                        } else error("translate", "Main method not defined in class.");
+                    } else error("translate", "Multiple main methods defined.");
+                }
+
+                children = nodeStack.pop().getChildren();
+                pyBuilder.append("def ");
+                if (options.contains("translateMain")) pyBuilder.append("main(args)");
+                else translate(children.get(0));
+                pyBuilder.append(":");
+                pyBuilder.newLine();
+                pyBuilder.increaseIndent();
+                translate(children.get(1));
+                pyBuilder.decreaseIndent();
+                options.clear("translateMain");
                 break;
 
                 case "method header":
