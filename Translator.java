@@ -111,6 +111,12 @@ public class Translator {
         } else if (literal != null) return literal; else return "";
     }
 
+    // translates 'this' to 'self' when it is the first
+    // element of a field access.
+    String translateThis(String str, boolean isFirstElement) {
+        return isFirstElement ? remap(str) : str; 
+    }
+
     String getSource() {
         return pyBuilder.getSource();
     }
@@ -910,15 +916,15 @@ public class Translator {
                 boolean firstElement = true;
                 if (field.size() > 1) {
                     for (String idnt : field.subList(0, field.size()-2)) {
-                        if (firstElement && idnt.equals("this")) idnt = "self";
-                        pyBuilder.append(idnt + ".");
+                        if (debug) System.out.println(idnt);
+                        pyBuilder.append(translateThis(idnt, firstElement) + ".");
                         firstElement = false;
                     }
 
                     if (field.get(field.size()-1).equals("length")) {
-                        pyBuilder.append("len(" + field.get(field.size()-2) + ")");
-                    } else pyBuilder.append(field.get(field.size()-2) + "." + field.get(field.size()-1));
-                } else if (field.size() > 0) pyBuilder.append(field.get(0).replace("this", "self"));
+                        pyBuilder.append("len(" + translateThis(field.get(field.size()-2), firstElement) + ")");
+                    } else pyBuilder.append(translateThis(field.get(field.size()-2), firstElement) + "." + field.get(field.size()-1));
+                } else if (field.size() > 0) pyBuilder.append(translateThis(field.get(0), true));
 
                 break;
 

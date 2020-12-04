@@ -5,7 +5,7 @@ private int k = 3;
 private int diameter; // the diameter to be calculated
 int noModifier;
 
-    public BasicClass foo(BasicClass b, int j){
+    public BasicClass foo(BasicClass b, int i){
         int k = i;
         System.out.println("This is k " + this.k);
     }
