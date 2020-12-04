@@ -62,7 +62,9 @@ public class FirstPass{
                         break;
                     case '}':
                         if(!inStr){
-                            stack.pop();
+                            if(stack.size() != 0){
+                                stack.pop();
+                            }
                             if(stack.size() == 0){
                                 cont = false;
                             }
