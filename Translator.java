@@ -348,9 +348,8 @@ public class Translator {
                     pyBuilder.newLine();
                     pyBuilder.decreaseIndent();
                 }
-
-                classNames.pop();
                 translate(children.get(2));
+                classNames.pop();
                 pyBuilder.decreaseIndent();
                 break;
 
