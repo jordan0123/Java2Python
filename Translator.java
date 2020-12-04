@@ -375,6 +375,7 @@ public class Translator {
 
                 case "method declaration":
                 if (nodeStack.peek().containsAll("static_kw")) {
+                    options.addGlobal("isStaticMethod");
                     pyBuilder.append("@staticmethod");
                     pyBuilder.newLine();
                 }
@@ -398,6 +399,8 @@ public class Translator {
                 pyBuilder.increaseIndent();
                 translate(children.get(1));
                 pyBuilder.decreaseIndent();
+
+                options.clear("isStaticMethod");
                 options.clear("translateMain");
                 break;
 
@@ -415,10 +418,18 @@ public class Translator {
 
                 case "method declarator":
                 children = nodeStack.pop().getChildren();
-                pyBuilder.append(children.get(0).getValue() + "(self");
+                boolean isFirstArgument = true;
+
+                pyBuilder.append(children.get(0).getValue() + "(");
+                if (!options.contains("isStaticMethod")) {
+                    pyBuilder.append("self");
+                    isFirstArgument = false;
+                }
 
                 for (ASTNode fp : children.get(1).getChildren()) {
-                    pyBuilder.append(", " + fp.getChildren().get(1).getValue());
+                    if (!isFirstArgument) pyBuilder.append(", ");
+                    else isFirstArgument = true;
+                    pyBuilder.append(fp.getChildren().get(1).getValue());
                 }
 
                 pyBuilder.append(")");
@@ -620,7 +631,14 @@ public class Translator {
                 case "method invocation":
                 children = nodeStack.pop().getChildren();
                 String methodName = children.get(0).getValue().replaceFirst("^this.", "self.");
-                if (!classNames.empty() && parser.classHasMethod(classNames.peek(), methodName)) pyBuilder.append("self.");
+
+                if (!classNames.empty() && parser.classHasMethod(classNames.peek(), methodName)) {
+                    // if we're currently translating the body of a static method, access the
+                    // static member function of the class. otherwise, we'll access the member
+                    // function of our self-referenced object. 
+                    pyBuilder.append(((options.contains("isStaticMethod")) ? classNames.peek() : "self") + ".");
+                }
+
                 translate(children.get(0));
                 pyBuilder.append("(");
                 translate(children.get(1));
